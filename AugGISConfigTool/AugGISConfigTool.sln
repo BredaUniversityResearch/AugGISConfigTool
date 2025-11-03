@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISDataParser", "AugGISDataParser\AugGISDataParser.csproj", "{ACAA8F2F-D696-47E4-AEDA-BF4E870D05C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISConfigToolConsole", "AugGISConfigToolConsole\AugGISConfigToolConsole.csproj", "{5AC5B02F-E5E7-4A6F-9261-F86303F0A424}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISConfigToolGUI", "AugGISConfigToolGUI\AugGISConfigToolGUI.csproj", "{A3DE94D8-D106-4B80-A51A-4598108EBEC8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ACAA8F2F-D696-47E4-AEDA-BF4E870D05C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACAA8F2F-D696-47E4-AEDA-BF4E870D05C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACAA8F2F-D696-47E4-AEDA-BF4E870D05C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACAA8F2F-D696-47E4-AEDA-BF4E870D05C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5AC5B02F-E5E7-4A6F-9261-F86303F0A424}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AC5B02F-E5E7-4A6F-9261-F86303F0A424}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AC5B02F-E5E7-4A6F-9261-F86303F0A424}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AC5B02F-E5E7-4A6F-9261-F86303F0A424}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {19A89855-0B23-490A-B7A7-D669CB58BEC6}
+	EndGlobalSection
+EndGlobal
