@@ -31,7 +31,7 @@ namespace AugGISDataParser
 		public string name = string.Empty;
 		public string type = string.Empty;
 
-		[JsonProperty("shape_feature_data")] public Data data = new Data();
+		[JsonProperty("shape_feature_data")] public List<Data> data = new List<Data>();
 
 		public List<string> tags = new List<string>();
 

@@ -80,22 +80,6 @@ namespace AugGISDataParser
 					SettingsShapeFeature.Attribute attribute = new SettingsShapeFeature.Attribute()
 						{ key = attribKey, value = attribValue };
 					settingShapeData.attributes.Add(attribute);
-
-					if (shapeFeature.attributeKeyToValues.ContainsKey(attribKey))
-					{
-						List<string> attributeValues = shapeFeature.attributeKeyToValues[attribKey];
-
-						if (!attributeValues.Contains(attribValue))
-						{
-							attributeValues.Add(attribValue);
-						}
-					}
-					else
-					{
-						List<string> attributeValues = new List<string>();
-						attributeValues.Add(attribValue);
-						shapeFeature.attributeKeyToValues[attribKey] = attributeValues;
-					}
 				}
 
 				for (int coordinateIndex = 0; coordinateIndex < feature.Geometry.Coordinates.Length; coordinateIndex++)
@@ -105,7 +89,7 @@ namespace AugGISDataParser
 					settingShapeData.points.Add(coordinateXY);
 				}
 
-				shapeFeature.data = settingShapeData;
+				shapeFeature.data.Add(settingShapeData);
 			}
 
 			return shapeFeature;
@@ -125,6 +109,25 @@ namespace AugGISDataParser
 					serializer.Serialize(writer, settingsDataModel);
 				}
 			}
+		}
+		
+		public static SettingsDataModel LoadSettingsDataModelFromFile(string settingsFilePath = @"settings.json")
+		{
+			SettingsDataModel settingsDataModel = null;
+			
+			JsonSerializer serializer = new JsonSerializer();
+			serializer.Converters.Add(new JavaScriptDateTimeConverter());
+			serializer.Formatting = Formatting.Indented;
+
+			using (StreamReader sr = new StreamReader(settingsFilePath))
+			using (JsonTextReader reader = new JsonTextReader(sr) )
+			{
+				settingsDataModel = serializer.Deserialize<SettingsDataModel>(reader);
+			}
+
+			settingsDataModel.OnAfterLoad();
+			
+			return settingsDataModel;
 		}
 	}
 }

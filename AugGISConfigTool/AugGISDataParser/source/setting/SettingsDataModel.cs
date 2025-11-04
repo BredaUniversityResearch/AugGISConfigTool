@@ -17,5 +17,33 @@ namespace AugGISDataParser
 		public Vector2 coordinate1;
 
 		public List<SettingsShapeFeature> shapeFeatures = new List<SettingsShapeFeature>();
+
+		public void OnAfterLoad()
+		{
+			foreach (SettingsShapeFeature shapeFeature in shapeFeatures)
+			{
+				foreach (SettingsShapeFeature.Data data in shapeFeature.data)
+				{
+					foreach (SettingsShapeFeature.Attribute attribute in data.attributes)
+					{
+						if (shapeFeature.attributeKeyToValues.ContainsKey(attribute.key))
+						{
+							List<string> attributeValues = shapeFeature.attributeKeyToValues[attribute.key];
+
+							if (!attributeValues.Contains(attribute.value))
+							{
+								attributeValues.Add(attribute.value);
+							}
+						}
+						else
+						{
+							List<string> attributeValues = new List<string>();
+							attributeValues.Add(attribute.value);
+							shapeFeature.attributeKeyToValues[attribute.key] = attributeValues;
+						}
+					}
+				}
+			}
+		}
 	}
 }

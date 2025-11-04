@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace AugGISDataParser
 {
@@ -22,6 +23,11 @@ namespace AugGISDataParser
 		{
 			x = a_x;
 			y = a_y;
+		}
+
+		public double[] ToArray()
+		{
+			return new double[2] { x, y };
 		}
 	}
 }

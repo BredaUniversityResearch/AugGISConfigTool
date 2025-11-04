@@ -11,4 +11,8 @@
     <ProjectReference Include="..\AugGISDataParser\AugGISDataParser.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-rc.2.25502.107" />
+  </ItemGroup>
+
 </Project>
