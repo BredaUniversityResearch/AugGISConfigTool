@@ -12,6 +12,11 @@ internal class AugGISConfigToolGUIApp : Application
 {
 	private bool m_isOpen = false;
 	private SettingsDataModel loadedSettingsDataModel = null;
+
+	private OpenFileDialogHandle _openGisFolderHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle _openSettingsFileHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle _exportConfigFileHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle _saveSettingsFileHandle = new OpenFileDialogHandle();
 	
 	private AugGISConfigToolGUIApp(string a_appName, int a_windowWidth, int a_windowHeight) : base(a_appName,
 		a_windowWidth, a_windowHeight)
@@ -27,30 +32,16 @@ internal class AugGISConfigToolGUIApp : Application
 			GL.ClearColor(1, 0.8f, 0.75f, 1);
 			ImGui.ShowDemoWindow();
 			
-			ShowToolBar();
+			ImGuiDrawToolBar();
 			
 			ImGui.Begin("Settings", ref m_isOpen);
 
 			if (loadedSettingsDataModel != null)
 			{
-				ImGui.InputText("Region", ref loadedSettingsDataModel.region, 100);
-				
-				ImGui.PushItemWidth(100);
-				ImGui.InputDouble("Min X", ref loadedSettingsDataModel.coordinate0.x);
-				ImGui.SameLine();
-				ImGui.InputDouble("Min Y", ref loadedSettingsDataModel.coordinate0.y);
-				ImGui.PopItemWidth();
-
-				if (ImGui.TreeNode("Shape Features"))
-				{
-					for (int i = 0; i < loadedSettingsDataModel.shapeFeatures.Count; i++)
-					{
-						SettingsShapeFeature shapeFeature = loadedSettingsDataModel.shapeFeatures[i];
-						ImGuiDrawShapeFeature(shapeFeature, i);
-					}
-					ImGui.TreePop();
-				}
+				ImGuiDrawSettings(loadedSettingsDataModel);
 			}
+
+			CheckFileHandles();
 			
 			ImGui.End();
 		}
@@ -61,7 +52,7 @@ internal class AugGISConfigToolGUIApp : Application
 		base.CheckInput(a_sdlEvent);
 	}
 
-	private unsafe void ShowToolBar()
+	private unsafe void ImGuiDrawToolBar()
 	{
 		ImGui.BeginMainMenuBar();
 
@@ -69,23 +60,12 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			if (ImGui.MenuItem("Open GIS Data Folder"))
 			{
-				SDL.ShowOpenFolderDialog(((a_userdata, a_fileList, a_filter) =>
-				{
-					string? selectedFolderDirectory = Utils.ToStringFromUTF8(a_fileList[0]);
-					Console.WriteLine(selectedFolderDirectory);
-				}), null, sdlWindow, "", false);
+				Util.ShowOpenFolderDialog(sdlWindow, _openGisFolderHandle);
 			}
 			
 			if (ImGui.MenuItem("Open Settings File"))
 			{
-				
-				SDL.ShowOpenFileDialog((a_userdata, a_fileList, a_filter) =>
-				{
-					string? selectedSettingsPath = Utils.ToStringFromUTF8(a_fileList[0]);
-					Console.WriteLine(selectedSettingsPath);
-					
-					loadedSettingsDataModel = SettingsDataCreator.LoadSettingsDataModelFromFile(selectedSettingsPath);
-				},null, sdlWindow, null, 0,"", false );
+				Util.ShowOpenFileDialog(sdlWindow, _openSettingsFileHandle);
 			}
 			
 			ImGui.EndMenu();
@@ -93,26 +73,120 @@ internal class AugGISConfigToolGUIApp : Application
 
 		ImGui.EndMainMenuBar();
 	}
+
+	private unsafe void ImGuiDrawSettings(SettingsDataModel a_settingsDataModel)
+	{
+		ImGui.InputText("Region", ref a_settingsDataModel.region, 100);
+				
+		ImGui.PushItemWidth(100);
+		ImGui.InputDouble("Min X", ref a_settingsDataModel.coordinate0.x);
+		ImGui.SameLine();
+		ImGui.InputDouble("Min Y", ref a_settingsDataModel.coordinate0.y);
+		ImGui.PopItemWidth();
+
+		if (ImGui.TreeNode("Shape Features"))
+		{
+			for (int i = 0; i < a_settingsDataModel.shapeFeatures.Count; i++)
+			{
+				SettingsShapeFeature shapeFeature = a_settingsDataModel.shapeFeatures[i];
+				ImGuiDrawShapeFeature(shapeFeature, i);
+			}
+			ImGui.TreePop();
+		}
+
+		if (ImGui.Button("Save Settings"))
+		{
+			Util.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
+		}
+		
+		if (ImGui.Button("Export to config file"))
+		{
+			Util.ShowOpenFileDialog(sdlWindow, _exportConfigFileHandle);
+		}
+	}
 	
-	public void ImGuiDrawShapeFeature(SettingsShapeFeature a_settingsShapeFeature, int a_id)
+	private void ImGuiDrawShapeFeature(SettingsShapeFeature a_settingsShapeFeature, int a_id)
 	{
 		ImGui.PushID(a_id);
 		if (ImGui.TreeNode(a_id.ToString(),a_settingsShapeFeature.name))
 		{
-			if(ImGui.BeginCombo("Choose Type", a_settingsShapeFeature.type))
-			{
-				foreach (string key in a_settingsShapeFeature.attributeKeyToValues.Keys)
-				{
-					if (ImGui.Selectable(key))
-					{
-						a_settingsShapeFeature.type = key;
-					}	
-				}
-				ImGui.EndCombo();
-			}
+			ImGuiDrawShapeTypeSelection(a_settingsShapeFeature);
 			ImGui.TreePop();
 		}
 		ImGui.PopID();
+	}
+
+	private void ImGuiDrawShapeTypeSelection(SettingsShapeFeature a_settingsShapeFeature)
+	{
+		if(ImGui.BeginCombo("Choose Type", a_settingsShapeFeature.type))
+		{
+			foreach (string key in a_settingsShapeFeature.attributeKeyToValues.Keys)
+			{
+				if (ImGui.Selectable(key))
+				{
+					a_settingsShapeFeature.type = key;
+				}	
+			}
+			ImGui.EndCombo();
+		}
+	}
+
+	private void CheckFileHandles()
+	{
+		if (_openGisFolderHandle.hasFinished)
+		{
+			try
+			{
+				loadedSettingsDataModel =
+					SettingsDataCreator.CreateSettingsDataModelFromGISData(_openGisFolderHandle.pickedPath);
+				_openGisFolderHandle.hasFinished = false;
+			}
+			catch
+			{
+				Util.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
+			}
+		}
+
+		if (_openSettingsFileHandle.hasFinished)
+		{
+			try
+			{
+				loadedSettingsDataModel = SettingsDataCreator.LoadSettingsDataModelFromFile(_openSettingsFileHandle.pickedPath);
+				loadedSettingsDataModel.OnAfterLoad();
+				_openSettingsFileHandle.hasFinished = false;
+			}
+			catch (Exception e)
+			{
+				Util.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok", () => _openSettingsFileHandle.hasFinished = false);
+			}
+		}
+
+		if (_exportConfigFileHandle.hasFinished)
+		{
+			try
+			{
+				JsonConfigObject configObject = ConfigDataCreator.CreateConfigDataModelFromSettings(loadedSettingsDataModel);
+				ConfigDataCreator.SaveConfigObjectToFile(configObject, _exportConfigFileHandle.pickedPath);
+				_exportConfigFileHandle.hasFinished = false;
+			}
+			catch (Exception e)
+			{
+				Util.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
+			}
+		}
+		
+		if (_saveSettingsFileHandle.hasFinished)
+		{
+			try
+			{
+				SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel, _saveSettingsFileHandle.pickedPath);
+				_saveSettingsFileHandle.hasFinished = false;
+			}
+			catch (Exception e)
+			{
+				Util.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
+			}
+		}
 	}
 	
 	static void Main()
