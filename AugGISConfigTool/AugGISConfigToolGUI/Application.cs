@@ -25,6 +25,8 @@ public class Application
 	private uint _windowId;
 	private bool _shouldClose = false;
 	private const bool c_useImguiViewportFeature = true;
+
+	protected unsafe SDLWindow* sdlWindow; 
 	
 	public Application(string a_appName, int a_windowWidth, int a_windowHeight)
 	{
@@ -38,9 +40,9 @@ public class Application
 			SDL.Init(SDLInitFlags.Events | SDLInitFlags.Video);
 		
 			float mainScale = SDL.GetDisplayContentScale(SDL.GetPrimaryDisplay());
-			SDLWindow* window = SDL.CreateWindow(a_appName, (int)(_windowWidth * mainScale), (int)(_windowHeight * mainScale),
+			sdlWindow = SDL.CreateWindow(a_appName, (int)(_windowWidth * mainScale), (int)(_windowHeight * mainScale),
 				SDLWindowFlags.Resizable | SDLWindowFlags.Opengl | SDLWindowFlags.HighPixelDensity);
-			_windowId = SDL.GetWindowID(window);
+			_windowId = SDL.GetWindowID(sdlWindow);
 
 			var guiContext = ImGui.CreateContext();
 			ImGui.SetCurrentContext(guiContext);
@@ -64,10 +66,10 @@ public class Application
 			io.ConfigDpiScaleFonts = true; 
 			io.ConfigDpiScaleViewports = true;
 
-			var context = SDL.GLCreateContext(window);
+			var context = SDL.GLCreateContext(sdlWindow);
 
 			ImGuiImplSDL3.SetCurrentContext(guiContext);
-			if (!ImGuiImplSDL3.InitForOpenGL(new SDLWindowPtr((Hexa.NET.ImGui.Backends.SDL3.SDLWindow*)window),
+			if (!ImGuiImplSDL3.InitForOpenGL(new SDLWindowPtr((Hexa.NET.ImGui.Backends.SDL3.SDLWindow*)sdlWindow),
 				    (void*)context.Handle))
 			{
 				Console.WriteLine("Failed to init ImGui Impl SDL3");
@@ -83,7 +85,7 @@ public class Application
 				return;
 			}
 
-			_gl = new(new BindingsContext(window, context));
+			_gl = new(new BindingsContext(sdlWindow, context));
 		}
 	}
 

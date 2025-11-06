@@ -29,5 +29,10 @@ namespace AugGISDataParser
 		{
 			return new double[2] { x, y };
 		}
+
+		public override string ToString()
+		{
+			return string.Format("x: %d y:%d", x, y);
+		}
 	}
 }
