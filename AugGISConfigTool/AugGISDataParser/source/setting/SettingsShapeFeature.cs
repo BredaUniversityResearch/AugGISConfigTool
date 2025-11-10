@@ -13,7 +13,7 @@ namespace AugGISDataParser
 		public struct Attribute
 		{
 			public string key;
-			public string value;
+			public string? value;
 		}
 
 		public struct Data

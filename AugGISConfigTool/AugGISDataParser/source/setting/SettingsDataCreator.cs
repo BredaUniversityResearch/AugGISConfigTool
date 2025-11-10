@@ -1,63 +1,79 @@
 ﻿using DotSpatial.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace AugGISDataParser
 {
 	public static class SettingsDataCreator
 	{
-		public static SettingsDataModel CreateSettingsDataModelFromGISData(string gisDataDirectoryPath)
+		public static SettingsDataModel CreateSettingsDataModelFromGisData(string a_gisDataDirectoryPath)
 		{
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 			SettingsDataModel settingsDataModel = new SettingsDataModel();
 
-			string[] files = Directory.GetFiles(gisDataDirectoryPath);
+			string[] files = Directory.GetFiles(a_gisDataDirectoryPath);
 			List<string> shpFiles = new List<string>();
-
+			List<string> rasterTifFiles = new List<string>();
+			
 			foreach (string file in files)
 			{
 				if (file.EndsWith(".shp"))
 				{
 					shpFiles.Add(file);
 				}
+				else if (file.EndsWith(".tiff"))
+				{
+					rasterTifFiles.Add(file);
+				}
 				else
 				{
-					Console.WriteLine("[Warning] Unsupported GIS file detected in directory {0}", gisDataDirectoryPath);
+					Console.WriteLine("[Warning] Unsupported GIS file detected: {0}", file);
 				}
 			}
 
-			Vector2 coordinate_min = new Vector2(double.MaxValue, double.MaxValue);
-			Vector2 coordinate_max = new Vector2(double.MinValue, double.MinValue);
+			Vector2 coordinateMin = new Vector2(double.MaxValue, double.MaxValue);
+			Vector2 coordinateMax = new Vector2(double.MinValue, double.MinValue);
 
-			for (int shpFileIndex = 0; shpFileIndex < shpFiles.Count; shpFileIndex++)
+			foreach (string shpFilePath in shpFiles)
 			{
-				string shpFilePath = shpFiles[shpFileIndex];
-				SettingsShapeFeature feature = ParseShapeFile(shpFilePath, settingsDataModel);
+				SettingsShapeFeature feature = ParseShapeFile(shpFilePath);
 
-				if (feature.extents_min.x < coordinate_min.x) coordinate_min.x = feature.extents_min.x;
-				if (feature.extents_min.y < coordinate_min.y) coordinate_min.y = feature.extents_min.y;
+				if (feature.extents_min.x < coordinateMin.x) coordinateMin.x = feature.extents_min.x;
+				if (feature.extents_min.y < coordinateMin.y) coordinateMin.y = feature.extents_min.y;
 
-				if (feature.extents_max.x > coordinate_max.x) coordinate_max.x = feature.extents_max.x;
-				if (feature.extents_max.y > coordinate_max.y) coordinate_max.y = feature.extents_max.y;
+				if (feature.extents_max.x > coordinateMax.x) coordinateMax.x = feature.extents_max.x;
+				if (feature.extents_max.y > coordinateMax.y) coordinateMax.y = feature.extents_max.y;
 
 				settingsDataModel.shapeFeatures.Add(feature);
 			}
+			
+			// ReSharper disable once UnusedVariable
+			DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider grp = new DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider();
+			
+			foreach (string rasterFile in rasterTifFiles)
+			{
+				IRaster raster = Raster.Open(rasterFile);
+				if (raster == null)
+				{
+					Console.WriteLine("Invalid Raster File: {0}", rasterFile);
+				}
+				else
+				{
+					Console.Write(raster.Extent.ToString());
+				}
+			}
 
-			settingsDataModel.coordinate0 = coordinate_min;
-			settingsDataModel.coordinate1 = coordinate_max;
+			settingsDataModel.coordinate0 = coordinateMin;
+			settingsDataModel.coordinate1 = coordinateMax;
 
 			return settingsDataModel;
 		}
 
-		private static SettingsShapeFeature ParseShapeFile(string shapeFilePath, SettingsDataModel dataModel)
+		private static SettingsShapeFeature ParseShapeFile(string a_shapeFilePath)
 		{
-			Shapefile shapefile = Shapefile.OpenFile(shapeFilePath);
+			Shapefile shapefile = Shapefile.OpenFile(a_shapeFilePath);
 			SettingsShapeFeature shapeFeature = new SettingsShapeFeature();
 
 			shapeFeature.name = shapefile.Name;
@@ -85,8 +101,8 @@ namespace AugGISDataParser
 				for (int coordinateIndex = 0; coordinateIndex < feature.Geometry.Coordinates.Length; coordinateIndex++)
 				{
 					NetTopologySuite.Geometries.Coordinate coordinate = feature.Geometry.Coordinates[coordinateIndex];
-					Vector2 coordinateXY = new Vector2(coordinate.X, coordinate.Y);
-					settingShapeData.points.Add(coordinateXY);
+					Vector2 coordinateVector = new Vector2(coordinate.X, coordinate.Y);
+					settingShapeData.points.Add(coordinateVector);
 				}
 
 				shapeFeature.data.Add(settingShapeData);
@@ -95,37 +111,37 @@ namespace AugGISDataParser
 			return shapeFeature;
 		}
 
-		public static void SaveSettingsDataModelToFile(SettingsDataModel settingsDataModel,
-			string fileName = @"settings.json")
+		public static void SaveSettingsDataModelToFile(SettingsDataModel a_settingsDataModel,
+			string a_fileName = @"settings.json")
 		{
 			JsonSerializer serializer = new JsonSerializer();
 			serializer.Converters.Add(new JavaScriptDateTimeConverter());
-			serializer.Formatting = Newtonsoft.Json.Formatting.Indented;
+			serializer.Formatting = Formatting.Indented;
 
-			using (StreamWriter sw = new StreamWriter(fileName))
+			using (StreamWriter sw = new StreamWriter(a_fileName))
 			{
 				using (JsonWriter writer = new JsonTextWriter(sw))
 				{
-					serializer.Serialize(writer, settingsDataModel);
+					serializer.Serialize(writer, a_settingsDataModel);
 				}
 			}
 		}
 		
-		public static SettingsDataModel LoadSettingsDataModelFromFile(string settingsFilePath = @"settings.json")
+		public static SettingsDataModel? LoadSettingsDataModelFromFile(string a_settingsFilePath = @"settings.json")
 		{
-			SettingsDataModel settingsDataModel = null;
+			SettingsDataModel? settingsDataModel;
 			
 			JsonSerializer serializer = new JsonSerializer();
 			serializer.Converters.Add(new JavaScriptDateTimeConverter());
 			serializer.Formatting = Formatting.Indented;
 
-			using (StreamReader sr = new StreamReader(settingsFilePath))
+			using (StreamReader sr = new StreamReader(a_settingsFilePath))
 			using (JsonTextReader reader = new JsonTextReader(sr) )
 			{
 				settingsDataModel = serializer.Deserialize<SettingsDataModel>(reader);
 			}
 
-			settingsDataModel.OnAfterLoad();
+			settingsDataModel?.OnAfterLoad();
 			
 			return settingsDataModel;
 		}

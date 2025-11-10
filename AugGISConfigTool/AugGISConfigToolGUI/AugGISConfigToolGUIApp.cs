@@ -138,11 +138,13 @@ internal class AugGISConfigToolGUIApp : Application
 			try
 			{
 				loadedSettingsDataModel =
-					SettingsDataCreator.CreateSettingsDataModelFromGISData(_openGisFolderHandle.pickedPath);
+					SettingsDataCreator.CreateSettingsDataModelFromGisData(_openGisFolderHandle.pickedPath);
+				loadedSettingsDataModel.OnAfterLoad();
 				_openGisFolderHandle.hasFinished = false;
 			}
-			catch
+			catch(Exception e)
 			{
+				Console.Write("Error: {0} ", e.ToString());
 				Util.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
 			}
 		}
@@ -157,6 +159,7 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 			catch (Exception e)
 			{
+				Console.Write("Error: {0} ", e.ToString());
 				Util.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok", () => _openSettingsFileHandle.hasFinished = false);
 			}
 		}
@@ -171,6 +174,7 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 			catch (Exception e)
 			{
+				Console.Write("Error: {0} ", e.ToString());
 				Util.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
 			}
 		}
@@ -184,6 +188,7 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 			catch (Exception e)
 			{
+				Console.Write("Error: {0} ", e.ToString());
 				Util.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
 			}
 		}

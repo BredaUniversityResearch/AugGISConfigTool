@@ -21,4 +21,14 @@
     <ProjectReference Include="..\AugGISDataParser\AugGISDataParser.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="DotSpatial.Data.Rasters.GdalExtension">
+      <HintPath>..\Extensions\DotSpatial.Data.Rasters.GdalExtension\DotSpatial.Data.Rasters.GdalExtension.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e" />
+  </Target>
+
 </Project>

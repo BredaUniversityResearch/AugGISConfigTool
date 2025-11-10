@@ -7,7 +7,7 @@ namespace AugGISConfigToolGUI;
 public class OpenFileDialogHandle
 {
 	public bool hasFinished = false;
-	public string pickedPath = string.Empty;
+	public string? pickedPath = string.Empty;
 }
 
 public static class Util

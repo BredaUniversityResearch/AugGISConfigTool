@@ -10,8 +10,8 @@ namespace AugGISConfigToolGUI;
 
 public class Application
 {
-	private GL _gl;
-	public GL GL => _gl;
+	private GL? _gl;
+	protected GL? GL => _gl;
 	
 	private string _appName;
 	public string AppName => _appName;

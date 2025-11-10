@@ -29,7 +29,7 @@ internal class AugGISConfigToolConsoleApp
 			string? gisFileDirectoryPath = a_result.GetValue<string>(settingInputOption);
 			string? outputSettingsPath =  a_result.GetValue<string>(settingOutputOption);
 			
-			AugGISDataParser.SettingsDataModel dataModel = AugGISDataParser.SettingsDataCreator.CreateSettingsDataModelFromGISData(gisFileDirectoryPath);
+			AugGISDataParser.SettingsDataModel dataModel = AugGISDataParser.SettingsDataCreator.CreateSettingsDataModelFromGisData(gisFileDirectoryPath);
 			AugGISDataParser.SettingsDataCreator.SaveSettingsDataModelToFile(dataModel,outputSettingsPath);
 		});
 		
