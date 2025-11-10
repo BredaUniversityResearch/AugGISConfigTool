@@ -40,11 +40,11 @@ namespace AugGISDataParser
 			{
 				SettingsShapeFeature feature = ParseShapeFile(shpFilePath);
 
-				if (feature.extents_min.x < coordinateMin.x) coordinateMin.x = feature.extents_min.x;
-				if (feature.extents_min.y < coordinateMin.y) coordinateMin.y = feature.extents_min.y;
+				if (feature.extentsMin.x < coordinateMin.x) coordinateMin.x = feature.extentsMin.x;
+				if (feature.extentsMin.y < coordinateMin.y) coordinateMin.y = feature.extentsMin.y;
 
-				if (feature.extents_max.x > coordinateMax.x) coordinateMax.x = feature.extents_max.x;
-				if (feature.extents_max.y > coordinateMax.y) coordinateMax.y = feature.extents_max.y;
+				if (feature.extentsMax.x > coordinateMax.x) coordinateMax.x = feature.extentsMax.x;
+				if (feature.extentsMax.y > coordinateMax.y) coordinateMax.y = feature.extentsMax.y;
 
 				settingsDataModel.shapeFeatures.Add(feature);
 			}
@@ -61,7 +61,12 @@ namespace AugGISDataParser
 				}
 				else
 				{
-					Console.Write(raster.Extent.ToString());
+					Console.WriteLine(raster.NumColumns.ToString());
+					Console.WriteLine(raster.NumRows.ToString());
+					foreach (var categoryName in raster.CategoryNames())
+					{
+						Console.WriteLine(categoryName);
+					}
 				}
 			}
 
@@ -79,8 +84,8 @@ namespace AugGISDataParser
 			shapeFeature.name = shapefile.Name;
 			shapeFeature.tags.Add(shapefile.FeatureType.ToString());
 
-			shapeFeature.extents_min = new Vector2(shapefile.Extent.MinX, shapefile.Extent.MinY);
-			shapeFeature.extents_max = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
+			shapeFeature.extentsMin = new Vector2(shapefile.Extent.MinX, shapefile.Extent.MinY);
+			shapeFeature.extentsMax = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
 
 			for (int shapeFeatureIndex = 0; shapeFeatureIndex < shapefile.Features.Count; shapeFeatureIndex++)
 			{

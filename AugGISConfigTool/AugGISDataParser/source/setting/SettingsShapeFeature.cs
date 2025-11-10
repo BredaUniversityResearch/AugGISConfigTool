@@ -38,7 +38,7 @@ namespace AugGISDataParser
 		[JsonIgnore]
 		public Dictionary<string, List<string>> attributeKeyToValues = new Dictionary<string, List<string>>();
 
-		[JsonIgnore] public Vector2 extents_min;
-		[JsonIgnore] public Vector2 extents_max;
+		[JsonIgnore] public Vector2 extentsMin;
+		[JsonIgnore] public Vector2 extentsMax;
 	}
 }
