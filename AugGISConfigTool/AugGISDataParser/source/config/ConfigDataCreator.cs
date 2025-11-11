@@ -16,7 +16,7 @@ namespace AugGISDataParser
 			jsonConfigObject.dataModel.region = a_settingsDataModel.region;
 			jsonConfigObject.dataModel.projection = a_settingsDataModel.projection;
 
-			foreach (var vectorLayerSetting in a_settingsDataModel.vectorLayerSettings)
+			foreach (VectorLayerSetting vectorLayerSetting in a_settingsDataModel.vectorLayerSettings)
 			{
 				if (vectorLayerSetting.shapefile == null)
 				{

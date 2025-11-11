@@ -19,17 +19,12 @@ namespace AugGISDataParser
 		public Vector2 coordinate1;
 
 		public List<VectorLayerSetting> vectorLayerSettings = new List<VectorLayerSetting>();
-
-		public string gisDataDirectoryPath = string.Empty;
-
-		[JsonIgnore] public int loadedShapeFileCount = 0;
+		public List<RasterLayerSetting> rasterLayerSettings = new List<RasterLayerSetting>();
 		
 		public void OnAfterLoad()
 		{
-			for (int i = 0; i < vectorLayerSettings.Count; i++ )
+			foreach (VectorLayerSetting vectorLayerSetting in vectorLayerSettings)
 			{
-				VectorLayerSetting vectorLayerSetting = vectorLayerSettings[i];
-
 				if (vectorLayerSetting.shapefile == null)
 				{
 					vectorLayerSetting.shapefile = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
@@ -58,6 +53,14 @@ namespace AugGISDataParser
 							vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
 						}
 					}
+				}
+			}
+
+			foreach (RasterLayerSetting rasterLayerSetting in rasterLayerSettings)
+			{
+				if (rasterLayerSetting.rasterFile == null)
+				{
+					rasterLayerSetting.rasterFile = Raster.Open(rasterLayerSetting.rasterFilePath);
 				}
 			}
 		}

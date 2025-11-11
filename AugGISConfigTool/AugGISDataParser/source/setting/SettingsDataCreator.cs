@@ -12,7 +12,6 @@ namespace AugGISDataParser
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 			SettingsDataModel settingsDataModel = new SettingsDataModel();
-			settingsDataModel.gisDataDirectoryPath = a_gisDataDirectoryPath;
 
 			string[] files = Directory.GetFiles(a_gisDataDirectoryPath);
 			List<string> shpFiles = new List<string>();
@@ -39,9 +38,7 @@ namespace AugGISDataParser
 
 			foreach (string shpFilePath in shpFiles)
 			{
-				Shapefile shapefile = Shapefile.OpenFile(shpFilePath);
-				VectorLayerSetting vectorLayerSetting = ParseShapeFile(shapefile);
-				settingsDataModel.loadedShapeFileCount++;
+				VectorLayerSetting vectorLayerSetting = ParseShapeFile(shpFilePath);
 
 				if (vectorLayerSetting.extentsMin.x < coordinateMin.x) coordinateMin.x = vectorLayerSetting.extentsMin.x;
 				if (vectorLayerSetting.extentsMin.y < coordinateMin.y) coordinateMin.y = vectorLayerSetting.extentsMin.y;
@@ -58,20 +55,15 @@ namespace AugGISDataParser
 			
 			foreach (string rasterFile in rasterTifFiles)
 			{
-				IRaster raster = Raster.Open(rasterFile);
-				if (raster == null)
-				{
-					Console.WriteLine("Invalid Raster File: {0}", rasterFile);
-				}
-				else
-				{
-					Console.WriteLine(raster.NumColumns.ToString());
-					Console.WriteLine(raster.NumRows.ToString());
-					foreach (var categoryName in raster.CategoryNames())
-					{
-						Console.WriteLine(categoryName);
-					}
-				}
+				RasterLayerSetting rasterLayerSetting = ParseGeoTifFile(rasterFile);
+				
+				if (rasterLayerSetting.extentsMin.x < coordinateMin.x) coordinateMin.x = rasterLayerSetting.extentsMin.x;
+				if (rasterLayerSetting.extentsMin.y < coordinateMin.y) coordinateMin.y = rasterLayerSetting.extentsMin.y;
+
+				if (rasterLayerSetting.extentsMax.x > coordinateMax.x) coordinateMax.x = rasterLayerSetting.extentsMax.x;
+				if (rasterLayerSetting.extentsMax.y > coordinateMax.y) coordinateMax.y = rasterLayerSetting.extentsMax.y;
+				
+				settingsDataModel.rasterLayerSettings.Add(rasterLayerSetting);
 			}
 
 			settingsDataModel.coordinate0 = coordinateMin;
@@ -80,17 +72,36 @@ namespace AugGISDataParser
 			return settingsDataModel;
 		}
 
-		private static VectorLayerSetting ParseShapeFile(Shapefile a_shapefile)
+		private static VectorLayerSetting ParseShapeFile(string a_shpFilePath)
 		{
 			VectorLayerSetting vectorLayerSetting = new VectorLayerSetting();
-			vectorLayerSetting.name = a_shapefile.Name;
-			vectorLayerSetting.tags.Add(a_shapefile.FeatureType.ToString());
+			Shapefile shapefile = Shapefile.OpenFile(a_shpFilePath);
+			
+			vectorLayerSetting.name = shapefile.Name;
+			vectorLayerSetting.tags.Add(shapefile.FeatureType.ToString());
 
-			vectorLayerSetting.extentsMin = new Vector2(a_shapefile.Extent.MinX, a_shapefile.Extent.MinY);
-			vectorLayerSetting.extentsMax = new Vector2(a_shapefile.Extent.MaxX, a_shapefile.Extent.MaxY);
+			vectorLayerSetting.extentsMin = new Vector2(shapefile.Extent.MinX, shapefile.Extent.MinY);
+			vectorLayerSetting.extentsMax = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
 
-			vectorLayerSetting.shapefile = a_shapefile;
+			vectorLayerSetting.shapefile = shapefile;
 			return vectorLayerSetting;
+		}
+		
+		private static RasterLayerSetting ParseGeoTifFile(string a_rasterFilePath)
+		{
+			RasterLayerSetting rasterLayerSetting = new RasterLayerSetting();
+			rasterLayerSetting.rasterFilePath = a_rasterFilePath;
+			
+			IRaster rasterFile = Raster.Open(a_rasterFilePath);
+
+			rasterLayerSetting.rasterFile = rasterFile;
+			
+			rasterLayerSetting.name = rasterFile.Name;
+
+			rasterLayerSetting.extentsMin = new Vector2(rasterFile.Extent.MinX, rasterFile.Extent.MinY);
+			rasterLayerSetting.extentsMax = new Vector2(rasterFile.Extent.MaxX, rasterFile.Extent.MaxY);
+			
+			return rasterLayerSetting;
 		}
 
 		public static void SaveSettingsDataModelToFile(SettingsDataModel a_settingsDataModel,

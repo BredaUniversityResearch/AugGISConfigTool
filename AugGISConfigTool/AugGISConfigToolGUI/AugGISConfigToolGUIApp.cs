@@ -93,6 +93,16 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 			ImGui.TreePop();
 		}
+		
+		if (ImGui.TreeNode("Raster Layer Settings"))
+		{
+			for (int i = 0; i < a_settingsDataModel.rasterLayerSettings.Count; i++)
+			{
+				RasterLayerSetting rasterLayerSetting = a_settingsDataModel.rasterLayerSettings[i];
+				ImGuiDrawRasterLayerSettings(rasterLayerSetting, i);
+			}
+			ImGui.TreePop();
+		}
 
 		if (ImGui.Button("Save Settings"))
 		{
@@ -130,7 +140,17 @@ internal class AugGISConfigToolGUIApp : Application
 			ImGui.EndCombo();
 		}
 	}
-
+	
+	private void ImGuiDrawRasterLayerSettings(RasterLayerSetting a_rasterLayerSetting, int a_id)
+	{
+		ImGui.PushID(a_id);
+		if (ImGui.TreeNode(a_id.ToString(),a_rasterLayerSetting.name))
+		{
+			ImGui.TreePop();
+		}
+		ImGui.PopID();
+	}
+	
 	private void CheckFileHandles()
 	{
 		if (_openGisFolderHandle.hasFinished)
