@@ -84,12 +84,12 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.InputDouble("Min Y", ref a_settingsDataModel.coordinate0.y);
 		ImGui.PopItemWidth();
 
-		if (ImGui.TreeNode("Shape Features"))
+		if (ImGui.TreeNode("Vector Layer Settings"))
 		{
-			for (int i = 0; i < a_settingsDataModel.shapeFeatures.Count; i++)
+			for (int i = 0; i < a_settingsDataModel.vectorLayerSettings.Count; i++)
 			{
-				SettingsShapeFeature shapeFeature = a_settingsDataModel.shapeFeatures[i];
-				ImGuiDrawShapeFeature(shapeFeature, i);
+				VectorLayerSetting vectorLayerSetting = a_settingsDataModel.vectorLayerSettings[i];
+				ImGuiDrawVectorLayerSettings(vectorLayerSetting, i);
 			}
 			ImGui.TreePop();
 		}
@@ -105,26 +105,26 @@ internal class AugGISConfigToolGUIApp : Application
 		}
 	}
 	
-	private void ImGuiDrawShapeFeature(SettingsShapeFeature a_settingsShapeFeature, int a_id)
+	private void ImGuiDrawVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting, int a_id)
 	{
 		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(),a_settingsShapeFeature.name))
+		if (ImGui.TreeNode(a_id.ToString(),a_vectorLayerSetting.name))
 		{
-			ImGuiDrawShapeTypeSelection(a_settingsShapeFeature);
+			ImGuiDrawShapeTypeSelection(a_vectorLayerSetting);
 			ImGui.TreePop();
 		}
 		ImGui.PopID();
 	}
 
-	private void ImGuiDrawShapeTypeSelection(SettingsShapeFeature a_settingsShapeFeature)
+	private void ImGuiDrawShapeTypeSelection(VectorLayerSetting a_vectorLayerSetting)
 	{
-		if(ImGui.BeginCombo("Choose Type", a_settingsShapeFeature.type))
+		if(ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.type))
 		{
-			foreach (string key in a_settingsShapeFeature.attributeKeyToValues.Keys)
+			foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
 			{
 				if (ImGui.Selectable(key))
 				{
-					a_settingsShapeFeature.type = key;
+					a_vectorLayerSetting.type = key;
 				}	
 			}
 			ImGui.EndCombo();

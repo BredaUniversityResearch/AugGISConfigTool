@@ -12,6 +12,7 @@ namespace AugGISDataParser
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 			SettingsDataModel settingsDataModel = new SettingsDataModel();
+			settingsDataModel.gisDataDirectoryPath = a_gisDataDirectoryPath;
 
 			string[] files = Directory.GetFiles(a_gisDataDirectoryPath);
 			List<string> shpFiles = new List<string>();
@@ -38,15 +39,18 @@ namespace AugGISDataParser
 
 			foreach (string shpFilePath in shpFiles)
 			{
-				SettingsShapeFeature feature = ParseShapeFile(shpFilePath);
+				Shapefile shapefile = Shapefile.OpenFile(shpFilePath);
+				VectorLayerSetting vectorLayerSetting = ParseShapeFile(shapefile);
+				settingsDataModel.loadedShapeFileCount++;
 
-				if (feature.extentsMin.x < coordinateMin.x) coordinateMin.x = feature.extentsMin.x;
-				if (feature.extentsMin.y < coordinateMin.y) coordinateMin.y = feature.extentsMin.y;
+				if (vectorLayerSetting.extentsMin.x < coordinateMin.x) coordinateMin.x = vectorLayerSetting.extentsMin.x;
+				if (vectorLayerSetting.extentsMin.y < coordinateMin.y) coordinateMin.y = vectorLayerSetting.extentsMin.y;
 
-				if (feature.extentsMax.x > coordinateMax.x) coordinateMax.x = feature.extentsMax.x;
-				if (feature.extentsMax.y > coordinateMax.y) coordinateMax.y = feature.extentsMax.y;
+				if (vectorLayerSetting.extentsMax.x > coordinateMax.x) coordinateMax.x = vectorLayerSetting.extentsMax.x;
+				if (vectorLayerSetting.extentsMax.y > coordinateMax.y) coordinateMax.y = vectorLayerSetting.extentsMax.y;
 
-				settingsDataModel.shapeFeatures.Add(feature);
+				settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+				vectorLayerSetting.shapeFilePath = shpFilePath;
 			}
 			
 			// ReSharper disable once UnusedVariable
@@ -76,44 +80,17 @@ namespace AugGISDataParser
 			return settingsDataModel;
 		}
 
-		private static SettingsShapeFeature ParseShapeFile(string a_shapeFilePath)
+		private static VectorLayerSetting ParseShapeFile(Shapefile a_shapefile)
 		{
-			Shapefile shapefile = Shapefile.OpenFile(a_shapeFilePath);
-			SettingsShapeFeature shapeFeature = new SettingsShapeFeature();
+			VectorLayerSetting vectorLayerSetting = new VectorLayerSetting();
+			vectorLayerSetting.name = a_shapefile.Name;
+			vectorLayerSetting.tags.Add(a_shapefile.FeatureType.ToString());
 
-			shapeFeature.name = shapefile.Name;
-			shapeFeature.tags.Add(shapefile.FeatureType.ToString());
+			vectorLayerSetting.extentsMin = new Vector2(a_shapefile.Extent.MinX, a_shapefile.Extent.MinY);
+			vectorLayerSetting.extentsMax = new Vector2(a_shapefile.Extent.MaxX, a_shapefile.Extent.MaxY);
 
-			shapeFeature.extentsMin = new Vector2(shapefile.Extent.MinX, shapefile.Extent.MinY);
-			shapeFeature.extentsMax = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
-
-			for (int shapeFeatureIndex = 0; shapeFeatureIndex < shapefile.Features.Count; shapeFeatureIndex++)
-			{
-				SettingsShapeFeature.Data settingShapeData = new SettingsShapeFeature.Data();
-
-				IFeature feature = shapefile.Features[shapeFeatureIndex];
-
-				for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
-				{
-					string attribKey = feature.DataRow.Table.Columns[attribIndex].ToString();
-					string? attribValue = feature.DataRow[attribIndex].ToString();
-
-					SettingsShapeFeature.Attribute attribute = new SettingsShapeFeature.Attribute()
-						{ key = attribKey, value = attribValue };
-					settingShapeData.attributes.Add(attribute);
-				}
-
-				for (int coordinateIndex = 0; coordinateIndex < feature.Geometry.Coordinates.Length; coordinateIndex++)
-				{
-					NetTopologySuite.Geometries.Coordinate coordinate = feature.Geometry.Coordinates[coordinateIndex];
-					Vector2 coordinateVector = new Vector2(coordinate.X, coordinate.Y);
-					settingShapeData.points.Add(coordinateVector);
-				}
-
-				shapeFeature.data.Add(settingShapeData);
-			}
-
-			return shapeFeature;
+			vectorLayerSetting.shapefile = a_shapefile;
+			return vectorLayerSetting;
 		}
 
 		public static void SaveSettingsDataModelToFile(SettingsDataModel a_settingsDataModel,

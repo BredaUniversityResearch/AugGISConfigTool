@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DotSpatial.Data;
+using Newtonsoft.Json;
 
 namespace AugGISDataParser
 {
@@ -16,30 +18,44 @@ namespace AugGISDataParser
 		public Vector2 coordinate0;
 		public Vector2 coordinate1;
 
-		public List<SettingsShapeFeature> shapeFeatures = new List<SettingsShapeFeature>();
+		public List<VectorLayerSetting> vectorLayerSettings = new List<VectorLayerSetting>();
 
+		public string gisDataDirectoryPath = string.Empty;
+
+		[JsonIgnore] public int loadedShapeFileCount = 0;
+		
 		public void OnAfterLoad()
 		{
-			foreach (SettingsShapeFeature shapeFeature in shapeFeatures)
+			for (int i = 0; i < vectorLayerSettings.Count; i++ )
 			{
-				foreach (SettingsShapeFeature.Data data in shapeFeature.data)
-				{
-					foreach (SettingsShapeFeature.Attribute attribute in data.attributes)
-					{
-						if (shapeFeature.attributeKeyToValues.ContainsKey(attribute.key))
-						{
-							List<string> attributeValues = shapeFeature.attributeKeyToValues[attribute.key];
+				VectorLayerSetting vectorLayerSetting = vectorLayerSettings[i];
 
-							if (!attributeValues.Contains(attribute.value))
+				if (vectorLayerSetting.shapefile == null)
+				{
+					vectorLayerSetting.shapefile = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
+				}
+				
+				foreach (IFeature feature in vectorLayerSetting.shapefile.Features)
+				{
+					for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
+					{
+						string attribKey = feature.DataRow.Table.Columns[attribIndex].ToString();
+						string? attribValue = feature.DataRow[attribIndex].ToString();
+
+						if (vectorLayerSetting.attributeKeyToValues.ContainsKey(attribKey))
+						{
+							List<string> attributeValues = vectorLayerSetting.attributeKeyToValues[attribKey];
+
+							if (!attributeValues.Contains(attribValue))
 							{
-								attributeValues.Add(attribute.value);
+								attributeValues.Add(attribValue);
 							}
 						}
 						else
 						{
 							List<string> attributeValues = new List<string>();
-							attributeValues.Add(attribute.value);
-							shapeFeature.attributeKeyToValues[attribute.key] = attributeValues;
+							attributeValues.Add(attribValue);
+							vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
 						}
 					}
 				}

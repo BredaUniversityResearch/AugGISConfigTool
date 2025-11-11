@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using DotSpatial.Data;
+using NetTopologySuite.Geometries;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 namespace AugGISDataParser
@@ -14,45 +16,51 @@ namespace AugGISDataParser
 			jsonConfigObject.dataModel.region = a_settingsDataModel.region;
 			jsonConfigObject.dataModel.projection = a_settingsDataModel.projection;
 
-			foreach (SettingsShapeFeature shapeFeature in a_settingsDataModel.shapeFeatures)
+			foreach (var vectorLayerSetting in a_settingsDataModel.vectorLayerSettings)
 			{
+				if (vectorLayerSetting.shapefile == null)
+				{
+					Console.WriteLine("Error: Vector Layer Settings shape file is Null!");
+					continue;
+				}
 				ConfigVectorLayer configVectorLayer = new ConfigVectorLayer();
 				jsonConfigObject.dataModel.vectorLayers.Add(configVectorLayer);
 
-				configVectorLayer.name = shapeFeature.name;
-				configVectorLayer.@short = shapeFeature.name;
+				configVectorLayer.name = vectorLayerSetting.name;
+				configVectorLayer.@short = vectorLayerSetting.name;
 
-				foreach (string tag in shapeFeature.tags)
+				foreach (string tag in vectorLayerSetting.tags)
 				{
 					configVectorLayer.tags.Add(tag);
 				}
 
-				List<string> types = shapeFeature.attributeKeyToValues[shapeFeature.type];
+				List<string> types = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.type];
 
 				foreach (string type in types)
 				{
 					configVectorLayer.layerTypes.Add(new ConfigVectorLayer.LayerType() { name = type });
 				}
 
-				foreach (SettingsShapeFeature.Data settingData in shapeFeature.data)
+				foreach (IFeature shapeFeature in vectorLayerSetting.shapefile.Features)
 				{
-					ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData();
-					
-					configLayerData.points = new double[ settingData.points.Count, 2];
-					for (int pointIndex = 0; pointIndex < settingData.points.Count; pointIndex++)
+					ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
 					{
-						Vector2 point = settingData.points[pointIndex];
-						configLayerData.points[pointIndex, 0] = point.x;
-						configLayerData.points[pointIndex, 1] = point.y;
+						points = new double[ shapeFeature.Geometry.Coordinates.Length, 2]
+					};
+
+					for (int coordinateIndex = 0; coordinateIndex <  shapeFeature.Geometry.Coordinates.Length; coordinateIndex++)
+					{
+						Coordinate coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
+						configLayerData.points[coordinateIndex, 0] = coordinate.X;
+						configLayerData.points[coordinateIndex, 1] = coordinate.X;
 					}
 					
 					configLayerData.gaps = new double[0,0]; //TODO handle gaps
-
-					List<string> attributes = shapeFeature.attributeKeyToValues[shapeFeature.type];
-
-					var feature = shapeFeature;
-					var attribute = settingData.attributes.Single(x => x.key == feature.type);
-					string value = attribute.value;
+					
+					List<string> attributes = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.type];
+					
+					int attributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(vectorLayerSetting.type);
+					string value = shapeFeature.DataRow[attributeIndex].ToString();
 					
 					configLayerData.typeIndices.Add(attributes.IndexOf(value));
 					configVectorLayer.layerData.Add(configLayerData);

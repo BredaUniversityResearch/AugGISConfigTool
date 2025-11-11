@@ -2,7 +2,7 @@
 
 namespace AugGISDataParser;
 
-public class SettingsRaster
+public class RasterLayerSetting
 {
 	[JsonIgnore] public Vector2 extentsMin;
 	[JsonIgnore] public Vector2 extentsMax;
