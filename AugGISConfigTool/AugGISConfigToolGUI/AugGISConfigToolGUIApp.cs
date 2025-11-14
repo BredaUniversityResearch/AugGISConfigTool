@@ -146,6 +146,8 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.PushID(a_id);
 		if (ImGui.TreeNode(a_id.ToString(),a_rasterLayerSetting.name))
 		{
+			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
+			
 			ImGui.TreePop();
 		}
 		ImGui.PopID();
@@ -211,6 +213,32 @@ internal class AugGISConfigToolGUIApp : Application
 				Console.Write("Error: {0} ", e.ToString());
 				Util.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
 			}
+		}
+	}
+
+	private void ImGuiDrawRasterLayerTypeSettings(RasterLayerSetting a_rasterLayerSetting)
+	{
+		if (ImGui.Button("+"))
+		{
+			a_rasterLayerSetting.layerTypes.Add(new LayerType());
+		}
+		ImGui.SameLine();
+		if (ImGui.TreeNode("Types"))
+		{
+			for (int i = a_rasterLayerSetting.layerTypes.Count - 1; i >= 0; i--)
+			{
+				ImGui.PushID(i);
+				if (ImGui.Button("-"))
+				{
+					a_rasterLayerSetting.layerTypes.RemoveAt(i);
+					ImGui.PopID();
+					continue;
+				}
+				ImGui.SameLine();
+				ImGui.InputText("Type", ref a_rasterLayerSetting.layerTypes[i].name, (nuint)255);
+				ImGui.PopID();
+			}
+			ImGui.TreePop();
 		}
 	}
 	

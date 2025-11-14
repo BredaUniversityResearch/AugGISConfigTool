@@ -62,6 +62,11 @@ namespace AugGISDataParser
 				{
 					rasterLayerSetting.rasterFile = Raster.Open(rasterLayerSetting.rasterFilePath);
 				}
+
+				foreach (LayerType type in rasterLayerSetting.layerTypes)
+				{
+					rasterLayerSetting.layerTypeKeys.Add(type.name);
+				}
 			}
 		}
 	}

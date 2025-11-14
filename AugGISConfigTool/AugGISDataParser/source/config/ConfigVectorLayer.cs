@@ -20,11 +20,6 @@ namespace AugGISDataParser
 				typeIndices = new List<int>();
 			}
 		}
-
-		public struct LayerType
-		{
-			public string name;
-		}
 		
 		public string name;
 		public string @short;

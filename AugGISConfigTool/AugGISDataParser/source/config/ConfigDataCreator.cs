@@ -38,7 +38,7 @@ namespace AugGISDataParser
 
 				foreach (string type in types)
 				{
-					configVectorLayer.layerTypes.Add(new ConfigVectorLayer.LayerType() { name = type });
+					configVectorLayer.layerTypes.Add(new LayerType() { name = type });
 				}
 
 				foreach (IFeature shapeFeature in vectorLayerSetting.shapefile.Features)

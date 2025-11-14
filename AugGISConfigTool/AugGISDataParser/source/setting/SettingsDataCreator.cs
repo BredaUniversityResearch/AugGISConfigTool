@@ -23,7 +23,7 @@ namespace AugGISDataParser
 				{
 					shpFiles.Add(file);
 				}
-				else if (file.EndsWith(".tiff"))
+				else if (file.EndsWith(".tiff") || file.EndsWith(".tif"))
 				{
 					rasterTifFiles.Add(file);
 				}

@@ -10,6 +10,15 @@ public class RasterLayerSetting
 
 	public List<string> tags = new List<string>();
 	
+	[JsonProperty("mapping")]
+	public List<RasterMapping> rasterMappings = new List<RasterMapping>();
+	
+	[JsonProperty("types")]
+	public List<LayerType>  layerTypes = new List<LayerType>();
+	
+	[JsonIgnore]
+	public List<string> layerTypeKeys = new List<string>();
+	
 	[JsonIgnore] public Vector2 extentsMin;
 	[JsonIgnore] public Vector2 extentsMax;
 	
