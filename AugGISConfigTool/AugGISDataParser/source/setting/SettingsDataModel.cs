@@ -23,6 +23,9 @@ namespace AugGISDataParser
 		
 		public void OnAfterLoad()
 		{
+			// ReSharper disable once UnusedVariable
+			DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider grp = new DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider();
+			
 			foreach (VectorLayerSetting vectorLayerSetting in vectorLayerSettings)
 			{
 				if (vectorLayerSetting.shapefile == null)
@@ -61,11 +64,6 @@ namespace AugGISDataParser
 				if (rasterLayerSetting.rasterFile == null)
 				{
 					rasterLayerSetting.rasterFile = Raster.Open(rasterLayerSetting.rasterFilePath);
-				}
-
-				foreach (LayerType type in rasterLayerSetting.layerTypes)
-				{
-					rasterLayerSetting.layerTypeKeys.Add(type.name);
 				}
 			}
 		}

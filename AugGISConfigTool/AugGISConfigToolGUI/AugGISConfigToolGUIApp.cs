@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using AugGISDataParser;
+using DotSpatial.Data;
 using DotSpatial.Data.Properties;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
@@ -154,11 +155,15 @@ internal class AugGISConfigToolGUIApp : Application
 			ImGuiDrawRasterLayerMappingSettings(a_rasterLayerSetting);
 			ImGui.PopID();
 			
+			ImGui.PushID("ScaleSettings");
+			ImGuiDrawRasterLayerScaleSettings(a_rasterLayerSetting);
+			ImGui.PopID();
+			
 			ImGui.TreePop();
 		}
 		ImGui.PopID();
 	}
-	
+
 	private void CheckFileHandles()
 	{
 		if (_openGisFolderHandle.hasFinished)
@@ -226,22 +231,22 @@ internal class AugGISConfigToolGUIApp : Application
 	{
 		if (ImGui.Button("+"))
 		{
-			a_rasterLayerSetting.layerTypes.Add(new LayerType());
+			a_rasterLayerSetting.rasterLayerTypes.Add(new LayerType());
 		}
 		ImGui.SameLine();
 		if (ImGui.TreeNode("Types"))
 		{
-			for (int i = a_rasterLayerSetting.layerTypes.Count - 1; i >= 0; i--)
+			for (int i = a_rasterLayerSetting.rasterLayerTypes.Count - 1; i >= 0; i--)
 			{
 				ImGui.PushID(i);
 				if (ImGui.Button("-"))
 				{
-					a_rasterLayerSetting.layerTypes.RemoveAt(i);
+					a_rasterLayerSetting.rasterLayerTypes.RemoveAt(i);
 					ImGui.PopID();
 					continue;
 				}
 				ImGui.SameLine();
-				ImGui.InputText("Type", ref a_rasterLayerSetting.layerTypes[i].name, (nuint)255);
+				ImGui.InputText("Type", ref a_rasterLayerSetting.rasterLayerTypes[i].name, (nuint)255);
 				ImGui.PopID();
 			}
 			ImGui.TreePop();
@@ -272,14 +277,15 @@ internal class AugGISConfigToolGUIApp : Application
 					RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
 					ImGui.InputInt("Min",  ref currentMapping.min);
 					ImGui.InputInt("Max",  ref currentMapping.max);
-					string previewName = a_rasterLayerSetting.layerTypes.Count == 0? string.Empty :  a_rasterLayerSetting.layerTypes[currentMapping.typeIndex].name;
+					string previewName = a_rasterLayerSetting.rasterLayerTypes.Count == 0? "##" :  a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name;
 					if(ImGui.BeginCombo("Choose Type", previewName))
 					{
-						foreach (LayerType type in a_rasterLayerSetting.layerTypes)
+						foreach (LayerType type in a_rasterLayerSetting.rasterLayerTypes)
 						{
-							if (ImGui.Selectable(type.name))
+							string selectableLabel = type.name == String.Empty ? "##" : type.name;
+							if (ImGui.Selectable(selectableLabel))
 							{
-								currentMapping.typeIndex = a_rasterLayerSetting.layerTypes.IndexOf(type);
+								currentMapping.typeIndex = a_rasterLayerSetting.rasterLayerTypes.IndexOf(type);
 							}	
 						}
 						ImGui.EndCombo();
@@ -288,6 +294,51 @@ internal class AugGISConfigToolGUIApp : Application
 				}
 				ImGui.PopID();
 			}
+			ImGui.TreePop();
+		}
+	}
+	
+	private void ImGuiDrawRasterLayerScaleSettings(RasterLayerSetting a_rasterLayerSetting)
+	{
+		if (ImGui.Button("+"))
+		{
+			a_rasterLayerSetting.rasterScales.Add(new RasterScale());
+		}
+		ImGui.SameLine();
+		if (ImGui.TreeNode("Scale Settings"))
+		{
+			for (int i = a_rasterLayerSetting.rasterScales.Count - 1; i >= 0; i--)
+			{
+				ImGui.PushID(i);
+				if (ImGui.Button("-"))
+				{
+					a_rasterLayerSetting.rasterScales.RemoveAt(i);
+					ImGui.PopID();
+					continue;
+				}
+				ImGui.SameLine();
+				if (ImGui.TreeNode("Scale"))
+				{
+					RasterScale currentScale = a_rasterLayerSetting.rasterScales[i];
+					ImGui.InputInt("Min",  ref currentScale.minValue);
+					ImGui.InputInt("Max",  ref currentScale.maxValue);
+					if(ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
+					{
+						for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
+						{
+							RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
+							if (ImGui.Selectable(currentInterpolation.ToString()))
+							{
+								currentScale.interpolation = (RasterScale.EInterpolation)enumIndex;
+							}	
+						}
+						ImGui.EndCombo();
+					}
+					ImGui.TreePop();
+				}
+				ImGui.PopID();
+			}
+			
 			ImGui.TreePop();
 		}
 	}

@@ -14,10 +14,10 @@ public class RasterLayerSetting
 	public List<RasterMapping> rasterMappings = new List<RasterMapping>();
 	
 	[JsonProperty("types")]
-	public List<LayerType>  layerTypes = new List<LayerType>();
+	public List<LayerType>  rasterLayerTypes = new List<LayerType>();
 	
-	[JsonIgnore]
-	public List<string> layerTypeKeys = new List<string>();
+	[JsonProperty("scale")]
+	public List<RasterScale> rasterScales = new List<RasterScale>();
 	
 	[JsonIgnore] public Vector2 extentsMin;
 	[JsonIgnore] public Vector2 extentsMax;
