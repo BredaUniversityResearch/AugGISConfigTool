@@ -10,7 +10,7 @@ public class OpenFileDialogHandle
 	public string? pickedPath = string.Empty;
 }
 
-public static class Util
+public static class ImGuiAugGisDrawer
 {
 	public static void ImGuiShowErrorPopupModal(string a_message, string a_option, Action a_onClose)
 	{
@@ -50,4 +50,6 @@ public static class Util
 			a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
 		},null, a_window, null, 0,"", false );
 	}
+	
+	
 }

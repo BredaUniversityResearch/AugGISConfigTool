@@ -61,12 +61,12 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			if (ImGui.MenuItem("Open GIS Data Folder"))
 			{
-				Util.ShowOpenFolderDialog(sdlWindow, _openGisFolderHandle);
+				ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _openGisFolderHandle);
 			}
 			
 			if (ImGui.MenuItem("Open Settings File"))
 			{
-				Util.ShowOpenFileDialog(sdlWindow, _openSettingsFileHandle);
+				ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _openSettingsFileHandle);
 			}
 			
 			ImGui.EndMenu();
@@ -107,12 +107,12 @@ internal class AugGISConfigToolGUIApp : Application
 
 		if (ImGui.Button("Save Settings"))
 		{
-			Util.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
+			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
 		}
 		
 		if (ImGui.Button("Export to config file"))
 		{
-			Util.ShowOpenFileDialog(sdlWindow, _exportConfigFileHandle);
+			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _exportConfigFileHandle);
 		}
 	}
 	
@@ -178,7 +178,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch(Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				Util.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
 			}
 		}
 
@@ -193,7 +193,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				Util.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok", () => _openSettingsFileHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok", () => _openSettingsFileHandle.hasFinished = false);
 			}
 		}
 
@@ -208,7 +208,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				Util.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
 			}
 		}
 		
@@ -222,7 +222,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				Util.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
 			}
 		}
 	}
@@ -307,19 +307,19 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.SameLine();
 		if (ImGui.TreeNode("Scale Settings"))
 		{
-			for (int i = a_rasterLayerSetting.rasterScales.Count - 1; i >= 0; i--)
+			for (int rasterScaleIndex = a_rasterLayerSetting.rasterScales.Count - 1; rasterScaleIndex >= 0; rasterScaleIndex--)
 			{
-				ImGui.PushID(i);
+				ImGui.PushID(rasterScaleIndex);
 				if (ImGui.Button("-"))
 				{
-					a_rasterLayerSetting.rasterScales.RemoveAt(i);
+					a_rasterLayerSetting.rasterScales.RemoveAt(rasterScaleIndex);
 					ImGui.PopID();
 					continue;
 				}
 				ImGui.SameLine();
 				if (ImGui.TreeNode("Scale"))
 				{
-					RasterScale currentScale = a_rasterLayerSetting.rasterScales[i];
+					RasterScale currentScale = a_rasterLayerSetting.rasterScales[rasterScaleIndex];
 					ImGui.InputInt("Min",  ref currentScale.minValue);
 					ImGui.InputInt("Max",  ref currentScale.maxValue);
 					if(ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
@@ -334,6 +334,7 @@ internal class AugGISConfigToolGUIApp : Application
 						}
 						ImGui.EndCombo();
 					}
+					
 					ImGui.TreePop();
 				}
 				ImGui.PopID();
