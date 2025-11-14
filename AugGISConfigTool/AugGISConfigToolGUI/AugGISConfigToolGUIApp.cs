@@ -146,7 +146,13 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.PushID(a_id);
 		if (ImGui.TreeNode(a_id.ToString(),a_rasterLayerSetting.name))
 		{
+			ImGui.PushID("TypeSettings");
 			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
+			ImGui.PopID();
+			
+			ImGui.PushID("MappingSettings");
+			ImGuiDrawRasterLayerMappingSettings(a_rasterLayerSetting);
+			ImGui.PopID();
 			
 			ImGui.TreePop();
 		}
@@ -236,6 +242,50 @@ internal class AugGISConfigToolGUIApp : Application
 				}
 				ImGui.SameLine();
 				ImGui.InputText("Type", ref a_rasterLayerSetting.layerTypes[i].name, (nuint)255);
+				ImGui.PopID();
+			}
+			ImGui.TreePop();
+		}
+	}
+
+	private void ImGuiDrawRasterLayerMappingSettings(RasterLayerSetting a_rasterLayerSetting)
+	{
+		if (ImGui.Button("+"))
+		{
+			a_rasterLayerSetting.rasterMappings.Add(new RasterMapping());
+		}
+		ImGui.SameLine();
+		if (ImGui.TreeNode("Mappings"))
+		{
+			for (int i = a_rasterLayerSetting.rasterMappings.Count - 1; i >= 0; i--)
+			{
+				ImGui.PushID(i);
+				if (ImGui.Button("-"))
+				{
+					a_rasterLayerSetting.rasterMappings.RemoveAt(i);
+					ImGui.PopID();
+					continue;
+				}
+				ImGui.SameLine();
+				if (ImGui.TreeNode("Mapping"))
+				{
+					RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
+					ImGui.InputInt("Min",  ref currentMapping.min);
+					ImGui.InputInt("Max",  ref currentMapping.max);
+					string previewName = a_rasterLayerSetting.layerTypes.Count == 0? string.Empty :  a_rasterLayerSetting.layerTypes[currentMapping.typeIndex].name;
+					if(ImGui.BeginCombo("Choose Type", previewName))
+					{
+						foreach (LayerType type in a_rasterLayerSetting.layerTypes)
+						{
+							if (ImGui.Selectable(type.name))
+							{
+								currentMapping.typeIndex = a_rasterLayerSetting.layerTypes.IndexOf(type);
+							}	
+						}
+						ImGui.EndCombo();
+					}
+					ImGui.TreePop();
+				}
 				ImGui.PopID();
 			}
 			ImGui.TreePop();
