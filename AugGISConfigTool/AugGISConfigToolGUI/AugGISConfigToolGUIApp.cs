@@ -61,7 +61,7 @@ internal class AugGISConfigToolGUIApp : Application
 
 				ImGui.End();
 			}
-			
+
 			ImGui.ShowDemoWindow();
 		}
 	}
@@ -172,15 +172,15 @@ internal class AugGISConfigToolGUIApp : Application
 			ImGui.PushID("TypeSettings");
 			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
 			ImGui.PopID();
-			
+
 			ImGui.PushID("MappingSettings");
 			ImGuiDrawRasterLayerMappingSettings(a_rasterLayerSetting);
 			ImGui.PopID();
-			
+
 			ImGui.PushID("ScaleSettings");
 			ImGuiDrawRasterLayerScaleSettings(a_rasterLayerSetting);
 			ImGui.PopID();
-			
+
 			ImGui.TreePop();
 		}
 
@@ -202,7 +202,8 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok",
+					() => _openGisFolderHandle.hasFinished = false);
 			}
 		}
 
@@ -218,7 +219,8 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok", () => _openSettingsFileHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok",
+					() => _openSettingsFileHandle.hasFinished = false);
 			}
 		}
 
@@ -234,7 +236,8 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid config path!", "Ok",
+					() => { _exportConfigFileHandle.hasFinished = false; });
 			}
 		}
 
@@ -249,7 +252,8 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok", () => _saveSettingsFileHandle.hasFinished = false);
+				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok",
+					() => _saveSettingsFileHandle.hasFinished = false);
 			}
 		}
 	}
@@ -260,6 +264,7 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			a_rasterLayerSetting.rasterLayerTypes.Add(new LayerType());
 		}
+
 		ImGui.SameLine();
 		if (ImGui.TreeNode("Types"))
 		{
@@ -272,10 +277,12 @@ internal class AugGISConfigToolGUIApp : Application
 					ImGui.PopID();
 					continue;
 				}
+
 				ImGui.SameLine();
 				ImGui.InputText("Type", ref a_rasterLayerSetting.rasterLayerTypes[i].name, (nuint)255);
 				ImGui.PopID();
 			}
+
 			ImGui.TreePop();
 		}
 	}
@@ -286,6 +293,7 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			a_rasterLayerSetting.rasterMappings.Add(new RasterMapping());
 		}
+
 		ImGui.SameLine();
 		if (ImGui.TreeNode("Mappings"))
 		{
@@ -298,14 +306,17 @@ internal class AugGISConfigToolGUIApp : Application
 					ImGui.PopID();
 					continue;
 				}
+
 				ImGui.SameLine();
 				if (ImGui.TreeNode("Mapping"))
 				{
 					RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
-					ImGui.InputInt("Min",  ref currentMapping.min);
-					ImGui.InputInt("Max",  ref currentMapping.max);
-					string previewName = a_rasterLayerSetting.rasterLayerTypes.Count == 0? "##" :  a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name;
-					if(ImGui.BeginCombo("Choose Type", previewName))
+					ImGui.InputInt("Min", ref currentMapping.min);
+					ImGui.InputInt("Max", ref currentMapping.max);
+					string previewName = a_rasterLayerSetting.rasterLayerTypes.Count == 0
+						? "##"
+						: a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name;
+					if (ImGui.BeginCombo("Choose Type", previewName))
 					{
 						foreach (LayerType type in a_rasterLayerSetting.rasterLayerTypes)
 						{
@@ -313,64 +324,47 @@ internal class AugGISConfigToolGUIApp : Application
 							if (ImGui.Selectable(selectableLabel))
 							{
 								currentMapping.typeIndex = a_rasterLayerSetting.rasterLayerTypes.IndexOf(type);
-							}	
+							}
 						}
+
 						ImGui.EndCombo();
 					}
+
 					ImGui.TreePop();
 				}
+
 				ImGui.PopID();
 			}
+
 			ImGui.TreePop();
 		}
 	}
-	
+
 	private void ImGuiDrawRasterLayerScaleSettings(RasterLayerSetting a_rasterLayerSetting)
 	{
-		if (ImGui.Button("+"))
+		if (ImGui.TreeNode("Scale"))
 		{
-			a_rasterLayerSetting.rasterScales.Add(new RasterScale());
-		}
-		ImGui.SameLine();
-		if (ImGui.TreeNode("Scale Settings"))
-		{
-			for (int rasterScaleIndex = a_rasterLayerSetting.rasterScales.Count - 1; rasterScaleIndex >= 0; rasterScaleIndex--)
+			RasterScale currentScale = a_rasterLayerSetting.rasterScale;
+			ImGui.InputInt("Min", ref currentScale.minValue);
+			ImGui.InputInt("Max", ref currentScale.maxValue);
+			if (ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
 			{
-				ImGui.PushID(rasterScaleIndex);
-				if (ImGui.Button("-"))
+				for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
 				{
-					a_rasterLayerSetting.rasterScales.RemoveAt(rasterScaleIndex);
-					ImGui.PopID();
-					continue;
-				}
-				ImGui.SameLine();
-				if (ImGui.TreeNode("Scale"))
-				{
-					RasterScale currentScale = a_rasterLayerSetting.rasterScales[rasterScaleIndex];
-					ImGui.InputInt("Min",  ref currentScale.minValue);
-					ImGui.InputInt("Max",  ref currentScale.maxValue);
-					if(ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
+					RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
+					if (ImGui.Selectable(currentInterpolation.ToString()))
 					{
-						for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
-						{
-							RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
-							if (ImGui.Selectable(currentInterpolation.ToString()))
-							{
-								currentScale.interpolation = (RasterScale.EInterpolation)enumIndex;
-							}	
-						}
-						ImGui.EndCombo();
+						currentScale.interpolation = (RasterScale.EInterpolation)enumIndex;
 					}
-					
-					ImGui.TreePop();
 				}
-				ImGui.PopID();
+
+				ImGui.EndCombo();
 			}
-			
+
 			ImGui.TreePop();
 		}
 	}
-	
+
 	static void Main()
 	{
 		AugGISConfigToolGUIApp app = new AugGISConfigToolGUIApp("AugGIS Config Tool", 1200, 700);
