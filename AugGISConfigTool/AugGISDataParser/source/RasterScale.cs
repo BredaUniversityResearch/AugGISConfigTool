@@ -10,7 +10,7 @@ public class RasterScale
         Count
     }
     
-    public struct InterpolationGroup
+    public class InterpolationGroup
     {
         public double normalisedInputValue;
         public int minOutputValue;

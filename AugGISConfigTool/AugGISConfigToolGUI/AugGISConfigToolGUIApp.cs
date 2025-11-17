@@ -361,6 +361,39 @@ internal class AugGISConfigToolGUIApp : Application
 				ImGui.EndCombo();
 			}
 
+			if (currentScale.interpolation == RasterScale.EInterpolation.LinGrouped)
+			{
+				if (ImGui.Button("+"))
+				{
+					a_rasterLayerSetting.rasterScale.interpolationGroups.Add(new RasterScale.InterpolationGroup());
+				}
+
+				ImGui.SameLine();
+				if (ImGui.TreeNode("Linear Scale Groups"))
+				{
+					for (int i = a_rasterLayerSetting.rasterScale.interpolationGroups.Count - 1; i >= 0; i--)
+					{
+						ImGui.PushID(i);
+						if (ImGui.Button("-"))
+						{
+							a_rasterLayerSetting.rasterScale.interpolationGroups.RemoveAt(i);
+							ImGui.PopID();
+							continue;
+						}
+						ImGui.SameLine();
+						if (ImGui.TreeNode("Group"))
+						{
+							RasterScale.InterpolationGroup currentGroup = a_rasterLayerSetting.rasterScale.interpolationGroups[i];
+							ImGui.InputDouble("Normalised Input Value", ref currentGroup.normalisedInputValue);
+							ImGui.InputInt("Min Output Value", ref currentGroup.minOutputValue);
+
+							ImGui.TreePop();
+						}
+						ImGui.PopID();
+					}
+					ImGui.TreePop();
+				}
+			}
 			ImGui.TreePop();
 		}
 	}
