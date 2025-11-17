@@ -9,10 +9,11 @@ namespace AugGISDataParser
 		public double[] coordinate0 = new double[2];
 		public double[] coordinate1 =  new double[2];
 
-		[JsonProperty("vector_layers")]
-		public List<ConfigVectorLayer> vectorLayers = new List<ConfigVectorLayer>();
 		[JsonProperty("raster_layers")]
 		public List<ConfigRasterLayer> rasterLayers = new List<ConfigRasterLayer>();
+		
+		[JsonProperty("vector_layers")]
+		public List<ConfigVectorLayer> vectorLayers = new List<ConfigVectorLayer>();
 	}
 	
 	public class ConfigMetaData

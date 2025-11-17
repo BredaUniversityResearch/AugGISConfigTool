@@ -67,6 +67,22 @@ namespace AugGISDataParser
 				}
 			}
 
+			foreach (RasterLayerSetting rasterLayerSetting in a_settingsDataModel.rasterLayerSettings)
+			{
+				ConfigRasterLayer configRasterLayer = new ConfigRasterLayer();
+				configRasterLayer.name = rasterLayerSetting.name;
+				configRasterLayer.@short = rasterLayerSetting.name;	//TODO handle @short name (maybe make it a setting)
+				
+				configRasterLayer.rasterScale = rasterLayerSetting.rasterScale;
+				configRasterLayer.rasterLayerTypes = rasterLayerSetting.rasterLayerTypes;
+				configRasterLayer.rasterMappings = rasterLayerSetting.rasterMappings;
+				configRasterLayer.tags = rasterLayerSetting.tags;
+				
+				configRasterLayer.rasterFilePath = rasterLayerSetting.rasterFilePath; //TODO replace with png filepath
+				
+				jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
+			}
+
 			return jsonConfigObject;
 		}
 		

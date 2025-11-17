@@ -101,6 +101,10 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.InputDouble("Min X", ref a_settingsDataModel.coordinate0.x);
 		ImGui.SameLine();
 		ImGui.InputDouble("Min Y", ref a_settingsDataModel.coordinate0.y);
+
+		ImGui.InputDouble("Max X", ref a_settingsDataModel.coordinate1.x);
+		ImGui.SameLine();
+		ImGui.InputDouble("Max Y", ref a_settingsDataModel.coordinate1.y);
 		ImGui.PopItemWidth();
 
 		if (ImGui.TreeNode("Vector Layer Settings"))
@@ -380,20 +384,25 @@ internal class AugGISConfigToolGUIApp : Application
 							ImGui.PopID();
 							continue;
 						}
+
 						ImGui.SameLine();
 						if (ImGui.TreeNode("Group"))
 						{
-							RasterScale.InterpolationGroup currentGroup = a_rasterLayerSetting.rasterScale.interpolationGroups[i];
+							RasterScale.InterpolationGroup currentGroup =
+								a_rasterLayerSetting.rasterScale.interpolationGroups[i];
 							ImGui.InputDouble("Normalised Input Value", ref currentGroup.normalisedInputValue);
 							ImGui.InputInt("Min Output Value", ref currentGroup.minOutputValue);
 
 							ImGui.TreePop();
 						}
+
 						ImGui.PopID();
 					}
+
 					ImGui.TreePop();
 				}
 			}
+
 			ImGui.TreePop();
 		}
 	}
