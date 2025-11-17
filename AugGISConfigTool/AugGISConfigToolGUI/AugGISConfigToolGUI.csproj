@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e" />
+    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e&#xA;xcopy &quot;$(ProjectDir)assets&quot; &quot;$(TargetDir)assets&quot; /y /i /e" />
   </Target>
 
 </Project>

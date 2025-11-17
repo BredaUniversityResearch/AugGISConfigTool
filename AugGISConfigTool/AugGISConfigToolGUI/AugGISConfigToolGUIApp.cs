@@ -24,6 +24,12 @@ internal class AugGISConfigToolGUIApp : Application
 		a_windowWidth, a_windowHeight)
 	{
 		m_isOpen = true;
+
+		unsafe
+		{
+			ImGuiIOPtr io = ImGui.GetIO();
+			io.Fonts.AddFontFromFileTTF("assets/fonts/Roboto-Regular.ttf", 18);
+		}
 	}
 
 	protected override void Render()
@@ -32,7 +38,6 @@ internal class AugGISConfigToolGUIApp : Application
 		unsafe
 		{
 			GL.ClearColor(1, 0.8f, 0.75f, 1);
-			ImGui.ShowDemoWindow();
 
 			ImGuiDrawToolBar();
 
@@ -56,6 +61,8 @@ internal class AugGISConfigToolGUIApp : Application
 
 				ImGui.End();
 			}
+			
+			ImGui.ShowDemoWindow();
 		}
 	}
 
