@@ -1,10 +1,11 @@
-﻿using System.Text;
+using System.Text;
 using AugGISDataParser;
 using DotSpatial.Data;
 using DotSpatial.Data.Properties;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
 using Hexa.NET.Utilities;
+using ImGui = Hexa.NET.ImGui.ImGui;
 using SDLEvent = Hexa.NET.SDL3.SDLEvent;
 
 namespace AugGISConfigToolGUI;
@@ -18,13 +19,13 @@ internal class AugGISConfigToolGUIApp : Application
 	private OpenFileDialogHandle _openSettingsFileHandle = new OpenFileDialogHandle();
 	private OpenFileDialogHandle _exportConfigFileHandle = new OpenFileDialogHandle();
 	private OpenFileDialogHandle _saveSettingsFileHandle = new OpenFileDialogHandle();
-	
+
 	private AugGISConfigToolGUIApp(string a_appName, int a_windowWidth, int a_windowHeight) : base(a_appName,
 		a_windowWidth, a_windowHeight)
 	{
 		m_isOpen = true;
 	}
-	
+
 	protected override void Render()
 	{
 		base.Render();
@@ -32,19 +33,29 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			GL.ClearColor(1, 0.8f, 0.75f, 1);
 			ImGui.ShowDemoWindow();
-			
+
 			ImGuiDrawToolBar();
-			
-			ImGui.Begin("Settings", ref m_isOpen);
 
-			if (loadedSettingsDataModel != null)
+			ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+			ImGui.SetNextWindowPos(viewport.WorkPos);
+			ImGui.SetNextWindowSize(viewport.WorkSize);
+
+			if (ImGui.Begin("AugGis Config Tool", ref m_isOpen,
+				    ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoSavedSettings))
 			{
-				ImGuiDrawSettings(loadedSettingsDataModel);
-			}
+				ImGui.BeginChild("Settings");
 
-			CheckFileHandles();
-			
-			ImGui.End();
+				if (loadedSettingsDataModel != null)
+				{
+					ImGuiDrawSettings(loadedSettingsDataModel);
+				}
+
+				CheckFileHandles();
+
+				ImGui.EndChild();
+
+				ImGui.End();
+			}
 		}
 	}
 
@@ -63,12 +74,12 @@ internal class AugGISConfigToolGUIApp : Application
 			{
 				ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _openGisFolderHandle);
 			}
-			
+
 			if (ImGui.MenuItem("Open Settings File"))
 			{
 				ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _openSettingsFileHandle);
 			}
-			
+
 			ImGui.EndMenu();
 		}
 
@@ -78,7 +89,7 @@ internal class AugGISConfigToolGUIApp : Application
 	private unsafe void ImGuiDrawSettings(SettingsDataModel a_settingsDataModel)
 	{
 		ImGui.InputText("Region", ref a_settingsDataModel.region, 100);
-				
+
 		ImGui.PushItemWidth(100);
 		ImGui.InputDouble("Min X", ref a_settingsDataModel.coordinate0.x);
 		ImGui.SameLine();
@@ -92,9 +103,10 @@ internal class AugGISConfigToolGUIApp : Application
 				VectorLayerSetting vectorLayerSetting = a_settingsDataModel.vectorLayerSettings[i];
 				ImGuiDrawVectorLayerSettings(vectorLayerSetting, i);
 			}
+
 			ImGui.TreePop();
 		}
-		
+
 		if (ImGui.TreeNode("Raster Layer Settings"))
 		{
 			for (int i = 0; i < a_settingsDataModel.rasterLayerSettings.Count; i++)
@@ -102,6 +114,7 @@ internal class AugGISConfigToolGUIApp : Application
 				RasterLayerSetting rasterLayerSetting = a_settingsDataModel.rasterLayerSettings[i];
 				ImGuiDrawRasterLayerSettings(rasterLayerSetting, i);
 			}
+
 			ImGui.TreePop();
 		}
 
@@ -109,43 +122,45 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
 		}
-		
+
 		if (ImGui.Button("Export to config file"))
 		{
 			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _exportConfigFileHandle);
 		}
 	}
-	
+
 	private void ImGuiDrawVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting, int a_id)
 	{
 		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(),a_vectorLayerSetting.name))
+		if (ImGui.TreeNode(a_id.ToString(), a_vectorLayerSetting.name))
 		{
 			ImGuiDrawShapeTypeSelection(a_vectorLayerSetting);
 			ImGui.TreePop();
 		}
+
 		ImGui.PopID();
 	}
 
 	private void ImGuiDrawShapeTypeSelection(VectorLayerSetting a_vectorLayerSetting)
 	{
-		if(ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.type))
+		if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.type))
 		{
 			foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
 			{
 				if (ImGui.Selectable(key))
 				{
 					a_vectorLayerSetting.type = key;
-				}	
+				}
 			}
+
 			ImGui.EndCombo();
 		}
 	}
-	
+
 	private void ImGuiDrawRasterLayerSettings(RasterLayerSetting a_rasterLayerSetting, int a_id)
 	{
 		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(),a_rasterLayerSetting.name))
+		if (ImGui.TreeNode(a_id.ToString(), a_rasterLayerSetting.name))
 		{
 			ImGui.PushID("TypeSettings");
 			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
@@ -161,8 +176,10 @@ internal class AugGISConfigToolGUIApp : Application
 			
 			ImGui.TreePop();
 		}
+
 		ImGui.PopID();
 	}
+
 
 	private void CheckFileHandles()
 	{
@@ -175,7 +192,7 @@ internal class AugGISConfigToolGUIApp : Application
 				loadedSettingsDataModel.OnAfterLoad();
 				_openGisFolderHandle.hasFinished = false;
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
 				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok", () => _openGisFolderHandle.hasFinished = false);
@@ -186,7 +203,8 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			try
 			{
-				loadedSettingsDataModel = SettingsDataCreator.LoadSettingsDataModelFromFile(_openSettingsFileHandle.pickedPath);
+				loadedSettingsDataModel =
+					SettingsDataCreator.LoadSettingsDataModelFromFile(_openSettingsFileHandle.pickedPath);
 				loadedSettingsDataModel.OnAfterLoad();
 				_openSettingsFileHandle.hasFinished = false;
 			}
@@ -201,7 +219,8 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			try
 			{
-				JsonConfigObject configObject = ConfigDataCreator.CreateConfigDataModelFromSettings(loadedSettingsDataModel);
+				JsonConfigObject configObject =
+					ConfigDataCreator.CreateConfigDataModelFromSettings(loadedSettingsDataModel);
 				ConfigDataCreator.SaveConfigObjectToFile(configObject, _exportConfigFileHandle.pickedPath);
 				_exportConfigFileHandle.hasFinished = false;
 			}
@@ -211,12 +230,13 @@ internal class AugGISConfigToolGUIApp : Application
 				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid config path!", "Ok", () => { _exportConfigFileHandle.hasFinished = false;});
 			}
 		}
-		
+
 		if (_saveSettingsFileHandle.hasFinished)
 		{
 			try
 			{
-				SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel, _saveSettingsFileHandle.pickedPath);
+				SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel,
+					_saveSettingsFileHandle.pickedPath);
 				_saveSettingsFileHandle.hasFinished = false;
 			}
 			catch (Exception e)
