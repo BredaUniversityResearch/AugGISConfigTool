@@ -1,7 +1,14 @@
-﻿using DotSpatial.Data;
+﻿using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO.Compression;
+using DotSpatial.Data;
 using NetTopologySuite.Geometries;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tiff;
+using Image = SixLabors.ImageSharp.Image;
 
 namespace AugGISDataParser
 {
@@ -10,7 +17,7 @@ namespace AugGISDataParser
 		public static JsonConfigObject CreateConfigDataModelFromSettings(SettingsDataModel a_settingsDataModel)
 		{
 			JsonConfigObject jsonConfigObject = new JsonConfigObject();
-			
+
 			jsonConfigObject.dataModel.coordinate0 = a_settingsDataModel.coordinate0.ToArray();
 			jsonConfigObject.dataModel.coordinate1 = a_settingsDataModel.coordinate1.ToArray();
 			jsonConfigObject.dataModel.region = a_settingsDataModel.region;
@@ -23,6 +30,7 @@ namespace AugGISDataParser
 					Console.WriteLine("Error: Vector Layer Settings shape file is Null!");
 					continue;
 				}
+
 				ConfigVectorLayer configVectorLayer = new ConfigVectorLayer();
 				jsonConfigObject.dataModel.vectorLayers.Add(configVectorLayer);
 
@@ -45,23 +53,25 @@ namespace AugGISDataParser
 				{
 					ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
 					{
-						points = new double[ shapeFeature.Geometry.Coordinates.Length, 2]
+						points = new double[shapeFeature.Geometry.Coordinates.Length, 2]
 					};
 
-					for (int coordinateIndex = 0; coordinateIndex <  shapeFeature.Geometry.Coordinates.Length; coordinateIndex++)
+					for (int coordinateIndex = 0;
+					     coordinateIndex < shapeFeature.Geometry.Coordinates.Length;
+					     coordinateIndex++)
 					{
 						Coordinate coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
 						configLayerData.points[coordinateIndex, 0] = coordinate.X;
 						configLayerData.points[coordinateIndex, 1] = coordinate.X;
 					}
-					
-					configLayerData.gaps = new double[0,0]; //TODO handle gaps
-					
+
+					configLayerData.gaps = new double[0, 0]; //TODO handle gaps
+
 					List<string> attributes = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.type];
-					
+
 					int attributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(vectorLayerSetting.type);
 					string value = shapeFeature.DataRow[attributeIndex].ToString();
-					
+
 					configLayerData.typeIndices.Add(attributes.IndexOf(value));
 					configVectorLayer.layerData.Add(configLayerData);
 				}
@@ -71,31 +81,50 @@ namespace AugGISDataParser
 			{
 				ConfigRasterLayer configRasterLayer = new ConfigRasterLayer();
 				configRasterLayer.name = rasterLayerSetting.name;
-				configRasterLayer.@short = rasterLayerSetting.name;	//TODO handle @short name (maybe make it a setting)
-				
+				configRasterLayer.@short = rasterLayerSetting.name; //TODO handle @short name (maybe make it a setting)
+
 				configRasterLayer.rasterScale = rasterLayerSetting.rasterScale;
 				configRasterLayer.rasterLayerTypes = rasterLayerSetting.rasterLayerTypes;
 				configRasterLayer.rasterMappings = rasterLayerSetting.rasterMappings;
-				configRasterLayer.tags = rasterLayerSetting.tags;
-				
-				configRasterLayer.rasterFilePath = rasterLayerSetting.rasterFilePath; //TODO replace with png filepath
-				
+				configRasterLayer.tags = rasterLayerSetting.tags;	
+				configRasterLayer.originalRasterFilePath = rasterLayerSetting.rasterFilePath;
+
 				jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
 			}
 
 			return jsonConfigObject;
 		}
-		
-		public static void SaveConfigObjectToFile(JsonConfigObject a_configObject, string a_fileName = @"config.json")
+
+		public static void SaveConfigObjectToFile(JsonConfigObject a_configObject, string a_directoryPath)
 		{
 			JsonSerializer serializer = new JsonSerializer();
 			serializer.Converters.Add(new JavaScriptDateTimeConverter());
 			serializer.Formatting = Formatting.Indented;
+
+			string configRootDirectoryPath = a_directoryPath + "/config/";
+			string rasterDirectoryPath = configRootDirectoryPath + "/Rastermaps/";
 			
-			using (StreamWriter sw = new StreamWriter(a_fileName))
-			using (JsonWriter writer = new JsonTextWriter(sw))
+			if (!Directory.Exists(configRootDirectoryPath))
 			{
-				serializer.Serialize(writer, a_configObject);
+				Directory.CreateDirectory(configRootDirectoryPath);
+				Directory.CreateDirectory(rasterDirectoryPath);
+			}
+
+			foreach (ConfigRasterLayer rasterLayerSetting in a_configObject.dataModel.rasterLayers)
+			{
+				using (Image image = SixLabors.ImageSharp.Image.Load(rasterLayerSetting.originalRasterFilePath))
+				{
+					rasterLayerSetting.rasterFilePath = rasterDirectoryPath + $"raster{rasterLayerSetting.name}.png";
+					image.SaveAsPng(rasterLayerSetting.rasterFilePath);
+				}
+			}
+
+			using (StreamWriter sw = new StreamWriter(configRootDirectoryPath + "config.json"))
+			{
+				using (JsonWriter writer = new JsonTextWriter(sw))
+				{
+					serializer.Serialize(writer, a_configObject);
+				}
 			}
 		}
 	}

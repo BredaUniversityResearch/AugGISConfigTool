@@ -136,7 +136,7 @@ internal class AugGISConfigToolGUIApp : Application
 
 		if (ImGui.Button("Export to config file"))
 		{
-			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _exportConfigFileHandle);
+			ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _exportConfigFileHandle);
 		}
 	}
 

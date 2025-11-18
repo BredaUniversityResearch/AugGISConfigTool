@@ -9,6 +9,8 @@ public class ConfigRasterLayer
 	
 	[JsonProperty("data")]
 	public string rasterFilePath = string.Empty;
+
+	[JsonIgnore] public string originalRasterFilePath = string.Empty;
 	
 	public List<string> tags = new List<string>();
 
