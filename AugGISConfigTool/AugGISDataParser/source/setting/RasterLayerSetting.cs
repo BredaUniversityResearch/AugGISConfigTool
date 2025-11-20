@@ -17,8 +17,8 @@ public class RasterLayerSetting
 	[JsonProperty("scale")] public RasterScale rasterScale = new RasterScale()
 		{ minValue = 0, maxValue = 0, interpolation = RasterScale.EInterpolation.Lin };
 
-	[JsonIgnore] public Vector2 extentsMin;
-	[JsonIgnore] public Vector2 extentsMax;
+	public Vector2 extentsMin;
+	public Vector2 extentsMax;
 
 	[JsonIgnore] public IRaster? rasterFile = null;
 }

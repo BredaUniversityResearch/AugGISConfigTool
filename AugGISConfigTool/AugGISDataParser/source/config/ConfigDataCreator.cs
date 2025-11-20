@@ -88,7 +88,12 @@ namespace AugGISDataParser
 				configRasterLayer.rasterMappings = rasterLayerSetting.rasterMappings;
 				configRasterLayer.tags = rasterLayerSetting.tags;	
 				configRasterLayer.originalRasterFilePath = rasterLayerSetting.rasterFilePath;
-
+				configRasterLayer.coordinate0[0] = rasterLayerSetting.extentsMin.x;
+				configRasterLayer.coordinate0[1] = rasterLayerSetting.extentsMin.y;
+				
+				configRasterLayer.coordinate1[0] = rasterLayerSetting.extentsMax.x;
+				configRasterLayer.coordinate1[1] = rasterLayerSetting.extentsMax.y;
+				
 				jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
 			}
 

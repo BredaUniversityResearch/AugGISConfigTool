@@ -20,4 +20,7 @@ public class ConfigRasterLayer
 
 	[JsonProperty("scale")] public RasterScale rasterScale = new RasterScale()
 		{ minValue = 0, maxValue = 0, interpolation = RasterScale.EInterpolation.Lin };
+
+	public double[] coordinate0 = new double[2];
+	public double[] coordinate1 =  new double[2];
 }

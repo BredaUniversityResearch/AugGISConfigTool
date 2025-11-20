@@ -84,6 +84,7 @@ namespace AugGISDataParser
 			vectorLayerSetting.extentsMax = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
 
 			vectorLayerSetting.shapefile = shapefile;
+			shapefile.Close();
 			return vectorLayerSetting;
 		}
 		
@@ -97,10 +98,10 @@ namespace AugGISDataParser
 			rasterLayerSetting.rasterFile = rasterFile;
 			
 			rasterLayerSetting.name = rasterFile.Name;
-
 			rasterLayerSetting.extentsMin = new Vector2(rasterFile.Extent.MinX, rasterFile.Extent.MinY);
 			rasterLayerSetting.extentsMax = new Vector2(rasterFile.Extent.MaxX, rasterFile.Extent.MaxY);
 			
+			rasterFile.Close();
 			return rasterLayerSetting;
 		}
 
