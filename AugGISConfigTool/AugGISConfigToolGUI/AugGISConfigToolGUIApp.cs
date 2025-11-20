@@ -146,6 +146,7 @@ internal class AugGISConfigToolGUIApp : Application
 		if (ImGui.TreeNode(a_id.ToString(), a_vectorLayerSetting.name))
 		{
 			ImGuiDrawShapeTypeSelection(a_vectorLayerSetting);
+			ImGuiDrawDynamicStringList("Tags",a_vectorLayerSetting.tags);
 			ImGui.TreePop();
 		}
 
@@ -177,6 +178,10 @@ internal class AugGISConfigToolGUIApp : Application
 			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
 			ImGui.PopID();
 
+			ImGui.PushID("TagsSettings");
+			ImGuiDrawRasterTags(a_rasterLayerSetting);
+			ImGui.PopID();
+			
 			ImGui.PushID("MappingSettings");
 			ImGuiDrawRasterLayerMappingSettings(a_rasterLayerSetting);
 			ImGui.PopID();
@@ -401,6 +406,42 @@ internal class AugGISConfigToolGUIApp : Application
 
 					ImGui.TreePop();
 				}
+			}
+
+			ImGui.TreePop();
+		}
+	}
+
+	private void ImGuiDrawRasterTags(RasterLayerSetting a_rasterLayerSetting)
+	{
+		ImGuiDrawDynamicStringList("Tags",a_rasterLayerSetting.tags);
+	}
+	
+	private void ImGuiDrawDynamicStringList(string a_label, List<string> a_stringList)
+	{
+		if (ImGui.Button("+"))
+		{
+			a_stringList.Add(string.Empty);
+		}
+
+		ImGui.SameLine();
+		if (ImGui.TreeNode(a_label))
+		{
+			for (int i = a_stringList.Count - 1; i >= 0; i--)
+			{
+				ImGui.PushID(i);
+				if (ImGui.Button("-"))
+				{
+					a_stringList.RemoveAt(i);
+					ImGui.PopID();
+					continue;
+				}
+
+				ImGui.SameLine();
+				string currentString = a_stringList[i];
+				ImGui.InputText("Type", ref currentString, (nuint)255);
+				a_stringList[i] = currentString;
+				ImGui.PopID();
 			}
 
 			ImGui.TreePop();
