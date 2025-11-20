@@ -64,7 +64,7 @@ namespace AugGISDataParser
 				if (rasterLayerSetting.rasterFile == null)
 				{
 					rasterLayerSetting.rasterFile = Raster.Open(rasterLayerSetting.rasterFilePath);
-					//call close here, otherwise the process will keep the file as opened and it can not be accessed when exporting the raster to png
+					//call close here, otherwise the process will keep the file as opened, and it can not be accessed when exporting the raster to png
 					rasterLayerSetting.rasterFile.Close();
 				}
 			}

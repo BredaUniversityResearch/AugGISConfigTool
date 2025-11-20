@@ -94,12 +94,12 @@ namespace AugGISDataParser
 			rasterLayerSetting.rasterFilePath = a_rasterFilePath;
 			
 			IRaster rasterFile = Raster.Open(a_rasterFilePath);
-
 			rasterLayerSetting.rasterFile = rasterFile;
 			
 			rasterLayerSetting.name = rasterFile.Name;
 			rasterLayerSetting.extentsMin = new Vector2(rasterFile.Extent.MinX, rasterFile.Extent.MinY);
 			rasterLayerSetting.extentsMax = new Vector2(rasterFile.Extent.MaxX, rasterFile.Extent.MaxY);
+			rasterLayerSetting.tags.Add("Raster");
 			
 			rasterFile.Close();
 			return rasterLayerSetting;
