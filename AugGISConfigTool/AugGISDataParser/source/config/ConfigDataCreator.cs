@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Processing;
 using Image = SixLabors.ImageSharp.Image;
+using Rectangle = SixLabors.ImageSharp.Rectangle;
 
 namespace AugGISDataParser
 {
@@ -63,7 +64,7 @@ namespace AugGISDataParser
                     {
                         Coordinate coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
                         configLayerData.points[coordinateIndex, 0] = coordinate.X;
-                        configLayerData.points[coordinateIndex, 1] = coordinate.X;
+                        configLayerData.points[coordinateIndex, 1] = coordinate.Y;
                     }
 
                     configLayerData.gaps = new double[0, 0]; //TODO handle gaps
@@ -120,30 +121,30 @@ namespace AugGISDataParser
             {
                 using (Image image = Image.Load(rasterLayerSetting.originalRasterFilePath))
                 {
+                    double regionBottomLeftX = a_configObject.dataModel.coordinate0[0];
+                    double regionBottomLeftY = a_configObject.dataModel.coordinate0[1];
+                    
+                    double regionTopRightX = a_configObject.dataModel.coordinate1[0];
+                    double regionTopRightY = a_configObject.dataModel.coordinate1[1];
+                    
+                    double rasterInputBottomLeftX = rasterLayerSetting.coordinate0[0];
+                    double rasterInputBottomLeftY = rasterLayerSetting.coordinate0[1];
+                    
+                    double rasterInputTopRightX = rasterLayerSetting.coordinate1[0];
+                    double rasterInputTopRightY = rasterLayerSetting.coordinate1[1];
+                    
                     int originalWidth = image.Width;
                     int originalHeight = image.Height;
 
-                    double coordinateToPixelWidthFactor = originalWidth /
-                                                          (rasterLayerSetting.coordinate1[0] -
-                                                           rasterLayerSetting.coordinate0[0]);
+                    double coordinateToPixelWidthFactor = originalWidth / (rasterInputTopRightX - rasterInputBottomLeftX);
 
-                    double coordinateToPixelHeightFactor = originalHeight /
-                                                           (rasterLayerSetting.coordinate1[1] -
-                                                            rasterLayerSetting.coordinate0[1]);
+                    double coordinateToPixelHeightFactor = originalHeight / (rasterInputTopRightY - rasterInputBottomLeftY);
 
-                    double outputPixel0XRealNumber =
-                        (a_configObject.dataModel.coordinate0[0] - rasterLayerSetting.coordinate0[0]) *
-                        coordinateToPixelWidthFactor;
-                    double outputPixel0YRealNumber =
-                        (a_configObject.dataModel.coordinate0[1] - rasterLayerSetting.coordinate0[1]) *
-                        coordinateToPixelHeightFactor;
+                    double outputPixel0XRealNumber = (regionBottomLeftX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
+                    double outputPixel0YRealNumber = (regionBottomLeftY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
 
-                    double outputPixel1XRealNumber =
-                        (a_configObject.dataModel.coordinate1[0] - rasterLayerSetting.coordinate0[0]) *
-                        coordinateToPixelWidthFactor;
-                    double outputPixel1YRealNumber =
-                        (a_configObject.dataModel.coordinate1[1] - rasterLayerSetting.coordinate0[1]) *
-                        coordinateToPixelHeightFactor;
+                    double outputPixel1XRealNumber = (regionTopRightX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
+                    double outputPixel1YRealNumber = (regionTopRightY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
 
                     int outputPixel0X = (int) outputPixel0XRealNumber;
                     int outputPixel0Y = (int) outputPixel0YRealNumber;
@@ -151,15 +152,44 @@ namespace AugGISDataParser
                     int outputPixel1X = (int) Math.Ceiling(outputPixel1XRealNumber);
                     int outputPixel1Y = (int) Math.Ceiling(outputPixel1YRealNumber);
 
-                    int regionWidth = outputPixel1X - outputPixel0X - 1;
-                    int regionHeight = outputPixel1Y - outputPixel0Y - 1;
+                    int regionWidth = outputPixel1X - outputPixel0X;
+                    int regionHeight = outputPixel1Y - outputPixel0Y;
 
                     if (regionWidth <= 0 || regionHeight <= 0)
                     {
                         throw new Exception("Invalid region size!");
                     }
+                    
+                    regionWidth = Math.Clamp(regionWidth, 0, originalWidth);
+                    regionHeight = Math.Clamp(regionHeight,0, originalHeight);
+                    
+                    double pixelToCoordinateWidthFactor = (rasterInputTopRightX - rasterInputBottomLeftX) / originalWidth;
+                    double pixelToCoordinateHeightFactor = (rasterInputTopRightY - rasterInputBottomLeftY) / originalHeight;
 
-                    image.Mutate(a_context => a_context.Crop(regionWidth, regionHeight));
+                    rasterLayerSetting.coordinate0[0] = regionBottomLeftX -
+                                                        (outputPixel0XRealNumber - outputPixel0X) *
+                                                        pixelToCoordinateWidthFactor;
+                    rasterLayerSetting.coordinate0[1] = regionBottomLeftY -
+                                                        (outputPixel0YRealNumber - outputPixel0Y) *
+                                                        pixelToCoordinateHeightFactor;
+                    
+                    rasterLayerSetting.coordinate1[0] = regionTopRightX -
+                                                        (outputPixel1X - outputPixel1XRealNumber) *
+                                                        pixelToCoordinateWidthFactor;
+                    
+                    rasterLayerSetting.coordinate1[1] = regionTopRightY -
+                                                        (outputPixel1Y - outputPixel1YRealNumber) *
+                                                        pixelToCoordinateHeightFactor;
+                    
+                    // finally convert to pixel coordinates.
+                    outputPixel0Y = originalHeight - regionHeight - outputPixel0Y;
+
+                    // clamp by image input size
+                    outputPixel0X = Math.Max(0, Math.Min(originalWidth, outputPixel0X));
+                    outputPixel0Y =  Math.Max(0,  Math.Min(originalHeight, outputPixel0Y));
+
+                    Rectangle cutRect = new Rectangle(outputPixel0X, outputPixel0Y, regionWidth, regionHeight);
+                    image.Mutate(a_context => a_context.Crop(cutRect));
 
                     rasterLayerSetting.rasterFilePath = rasterDirectoryPath + $"raster{rasterLayerSetting.name}.png";
                     image.SaveAsPng(rasterLayerSetting.rasterFilePath);
