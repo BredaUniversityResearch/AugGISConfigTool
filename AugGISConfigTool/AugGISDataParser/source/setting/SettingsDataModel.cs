@@ -34,7 +34,7 @@ namespace AugGISDataParser
 					{
 						vectorLayerSetting.featureSet = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
 					}
-					else if (vectorLayerSetting.shapeFilePath.EndsWith(".json"))
+					else if (vectorLayerSetting.shapeFilePath.EndsWith(".json") || vectorLayerSetting.shapeFilePath.EndsWith(".geojson"))
 					{
 						vectorLayerSetting.featureSet = SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
 					}
