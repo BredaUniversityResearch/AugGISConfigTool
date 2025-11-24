@@ -17,7 +17,7 @@ namespace AugGISDataParser
 		public List<string> tags = new List<string>();
 
 		public string shapeFilePath = string.Empty;
-		[JsonIgnore] public Shapefile? shapefile = null;
+		[JsonIgnore] public FeatureSet? featureSet = null;
 		
 		[JsonIgnore]
 		public Dictionary<string, List<string>> attributeKeyToValues = new Dictionary<string, List<string>>();

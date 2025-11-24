@@ -2,11 +2,16 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text;
+using NetTopologySuite.Features;
+using NetTopologySuite.IO;
+using Feature = DotSpatial.Data.Feature;
+using IFeature = DotSpatial.Data.IFeature;
 
 namespace AugGISDataParser
 {
 	public static class SettingsDataCreator
 	{
+		private static GeoJsonReader jsonReader = new GeoJsonReader();
 		public static SettingsDataModel CreateSettingsDataModelFromGisData(string a_gisDataDirectoryPath)
 		{
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -16,12 +21,17 @@ namespace AugGISDataParser
 			string[] files = Directory.GetFiles(a_gisDataDirectoryPath);
 			List<string> shpFiles = new List<string>();
 			List<string> rasterTifFiles = new List<string>();
+			List<string> geoJsonFiles = new List<string>();
 			
 			foreach (string file in files)
 			{
 				if (file.EndsWith(".shp"))
 				{
 					shpFiles.Add(file);
+				}
+				else if (file.EndsWith(".json") || file.EndsWith(".geojson"))
+				{
+					geoJsonFiles.Add(file);
 				}
 				else if (file.EndsWith(".tiff") || file.EndsWith(".tif"))
 				{
@@ -50,8 +60,17 @@ namespace AugGISDataParser
 				vectorLayerSetting.shapeFilePath = shpFilePath;
 			}
 			
+			foreach (string geoJsonFile in geoJsonFiles)
+			{
+				FeatureSet featureSet = GetFeatureSetFromGeoJson(geoJsonFile);
+				VectorLayerSetting vectorLayerSetting = ParseFeatureSet(featureSet);
+				vectorLayerSetting.shapeFilePath = geoJsonFile;
+				settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+			}
+			
 			// ReSharper disable once UnusedVariable
-			DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider grp = new DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider();
+			DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider grp =
+				new DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider();
 			
 			foreach (string rasterFile in rasterTifFiles)
 			{
@@ -72,19 +91,38 @@ namespace AugGISDataParser
 			return settingsDataModel;
 		}
 
-		private static VectorLayerSetting ParseShapeFile(string a_shpFilePath)
+		public static VectorLayerSetting ParseShapeFile(string a_shpFilePath)
+		{
+			Shapefile shapefile = Shapefile.OpenFile(a_shpFilePath);
+			VectorLayerSetting vectorLayerSetting = ParseFeatureSet(shapefile);
+			vectorLayerSetting.featureSet = shapefile;
+			shapefile.Close();
+			return vectorLayerSetting;
+		}
+
+		public static FeatureSet GetFeatureSetFromGeoJson(string a_geoJsonPath)
+		{
+			string jsonString = File.ReadAllText(a_geoJsonPath);
+			FeatureCollection featureCollection = jsonReader.Read<FeatureCollection>(jsonString);
+			
+			FeatureSet featureSet = new FeatureSet();
+			foreach (NetTopologySuite.Features.IFeature netTopologyFeature in featureCollection)
+			{
+				featureSet.AddFeature(netTopologyFeature.Geometry);
+			}
+
+			return featureSet;
+		}
+
+		public static VectorLayerSetting ParseFeatureSet(FeatureSet a_featureSet)
 		{
 			VectorLayerSetting vectorLayerSetting = new VectorLayerSetting();
-			Shapefile shapefile = Shapefile.OpenFile(a_shpFilePath);
 			
-			vectorLayerSetting.name = shapefile.Name;
-			vectorLayerSetting.tags.Add(shapefile.FeatureType.ToString());
+			vectorLayerSetting.name = a_featureSet.Name ?? string.Empty;
+			vectorLayerSetting.tags.Add(a_featureSet.FeatureType.ToString());
 
-			vectorLayerSetting.extentsMin = new Vector2(shapefile.Extent.MinX, shapefile.Extent.MinY);
-			vectorLayerSetting.extentsMax = new Vector2(shapefile.Extent.MaxX, shapefile.Extent.MaxY);
-
-			vectorLayerSetting.shapefile = shapefile;
-			shapefile.Close();
+			vectorLayerSetting.extentsMin = new Vector2(a_featureSet.Extent.MinX, a_featureSet.Extent.MinY);
+			vectorLayerSetting.extentsMax = new Vector2(a_featureSet.Extent.MaxX, a_featureSet.Extent.MaxY);
 			return vectorLayerSetting;
 		}
 		
@@ -94,7 +132,6 @@ namespace AugGISDataParser
 			rasterLayerSetting.rasterFilePath = a_rasterFilePath;
 			
 			IRaster rasterFile = Raster.Open(a_rasterFilePath);
-			rasterLayerSetting.rasterFile = rasterFile;
 			
 			rasterLayerSetting.name = rasterFile.Name;
 			rasterLayerSetting.extentsMin = new Vector2(rasterFile.Extent.MinX, rasterFile.Extent.MinY);

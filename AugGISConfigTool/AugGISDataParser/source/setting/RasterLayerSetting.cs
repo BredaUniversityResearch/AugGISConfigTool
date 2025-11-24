@@ -19,6 +19,4 @@ public class RasterLayerSetting
 
 	public Vector2 extentsMin;
 	public Vector2 extentsMax;
-
-	[JsonIgnore] public IRaster? rasterFile = null;
 }

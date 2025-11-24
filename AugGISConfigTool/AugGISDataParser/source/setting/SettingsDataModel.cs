@@ -28,12 +28,19 @@ namespace AugGISDataParser
 			
 			foreach (VectorLayerSetting vectorLayerSetting in vectorLayerSettings)
 			{
-				if (vectorLayerSetting.shapefile == null)
+				if (vectorLayerSetting.featureSet == null)
 				{
-					vectorLayerSetting.shapefile = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
+					if (vectorLayerSetting.shapeFilePath.EndsWith(".shp"))
+					{
+						vectorLayerSetting.featureSet = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
+					}
+					else if (vectorLayerSetting.shapeFilePath.EndsWith(".json"))
+					{
+						vectorLayerSetting.featureSet = SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
+					}
 				}
 				
-				foreach (IFeature feature in vectorLayerSetting.shapefile.Features)
+				foreach (IFeature feature in vectorLayerSetting.featureSet.Features)
 				{
 					for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
 					{
@@ -56,16 +63,6 @@ namespace AugGISDataParser
 							vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
 						}
 					}
-				}
-			}
-
-			foreach (RasterLayerSetting rasterLayerSetting in rasterLayerSettings)
-			{
-				if (rasterLayerSetting.rasterFile == null)
-				{
-					rasterLayerSetting.rasterFile = Raster.Open(rasterLayerSetting.rasterFilePath);
-					//call close here, otherwise the process will keep the file as opened, and it can not be accessed when exporting the raster to png
-					rasterLayerSetting.rasterFile.Close();
 				}
 			}
 		}

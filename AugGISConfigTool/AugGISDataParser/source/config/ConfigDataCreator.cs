@@ -27,7 +27,7 @@ namespace AugGISDataParser
 
             foreach (VectorLayerSetting vectorLayerSetting in a_settingsDataModel.vectorLayerSettings)
             {
-                if (vectorLayerSetting.shapefile == null)
+                if (vectorLayerSetting.featureSet == null)
                 {
                     Console.WriteLine("Error: Vector Layer Settings shape file is Null!");
                     continue;
@@ -51,7 +51,7 @@ namespace AugGISDataParser
                     configVectorLayer.layerTypes.Add(new LayerType() {name = type});
                 }
 
-                foreach (IFeature shapeFeature in vectorLayerSetting.shapefile.Features)
+                foreach (IFeature shapeFeature in vectorLayerSetting.featureSet.Features)
                 {
                     ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
                     {
@@ -62,7 +62,7 @@ namespace AugGISDataParser
                          coordinateIndex < shapeFeature.Geometry.Coordinates.Length;
                          coordinateIndex++)
                     {
-                        Coordinate coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
+                        var coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
                         configLayerData.points[coordinateIndex, 0] = coordinate.X;
                         configLayerData.points[coordinateIndex, 1] = coordinate.Y;
                     }
