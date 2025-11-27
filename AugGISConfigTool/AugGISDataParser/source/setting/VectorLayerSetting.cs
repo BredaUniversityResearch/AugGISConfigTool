@@ -19,7 +19,6 @@ namespace AugGISDataParser
 		public string shapeFilePath = string.Empty;
 		[JsonIgnore] public FeatureSet? featureSet = null;
 		
-		[JsonIgnore]
 		public Dictionary<string, List<string>> attributeKeyToValues = new Dictionary<string, List<string>>();
 		[JsonIgnore] 
 		public Vector2 extentsMin;

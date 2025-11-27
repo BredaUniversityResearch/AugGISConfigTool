@@ -44,7 +44,11 @@ namespace AugGISDataParser
                     configVectorLayer.tags.Add(tag);
                 }
 
-                List<string> types = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.type];
+                List<string> types = new List<string>();
+                if (vectorLayerSetting.attributeKeyToValues.TryGetValue(vectorLayerSetting.type, out List<string>? vectorLayerSettingsTypeValues))
+                {
+                    types = vectorLayerSettingsTypeValues;
+                }
 
                 foreach (string type in types)
                 {

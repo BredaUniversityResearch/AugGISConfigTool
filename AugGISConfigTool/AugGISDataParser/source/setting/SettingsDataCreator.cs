@@ -1,8 +1,10 @@
-﻿using DotSpatial.Data;
+﻿using System.Data;
+using DotSpatial.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text;
 using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
 using Feature = DotSpatial.Data.Feature;
 using IFeature = DotSpatial.Data.IFeature;
@@ -62,10 +64,32 @@ namespace AugGISDataParser
 			
 			foreach (string geoJsonFile in geoJsonFiles)
 			{
-				FeatureSet featureSet = GetFeatureSetFromGeoJson(geoJsonFile);
-				VectorLayerSetting vectorLayerSetting = ParseFeatureSet(featureSet);
-				vectorLayerSetting.shapeFilePath = geoJsonFile;
-				settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+				GeoJsonFeatureSets geoJsonFeatureSets = GetFeatureSetFromGeoJson(geoJsonFile);
+				string jsonFileName = Path.GetFileName(geoJsonFile);
+				
+				if (geoJsonFeatureSets.pointFeatureSet?.Features.Count > 0)
+				{
+					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.pointFeatureSet);
+					vectorLayerSetting.name = jsonFileName + "_point";
+					vectorLayerSetting.shapeFilePath = geoJsonFile;
+					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+				}
+				
+				if (geoJsonFeatureSets.lineFeatureSet?.Features.Count > 0)
+				{
+					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.lineFeatureSet);
+					vectorLayerSetting.shapeFilePath = geoJsonFile;
+					vectorLayerSetting.name = jsonFileName + "_line";
+					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+				}
+				
+				if (geoJsonFeatureSets.polygonFeatureSet?.Features.Count > 0)
+				{
+					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.polygonFeatureSet);
+					vectorLayerSetting.shapeFilePath = geoJsonFile;
+					vectorLayerSetting.name = jsonFileName + "_polygon";
+					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
+				}
 			}
 			
 			// ReSharper disable once UnusedVariable
@@ -95,24 +119,66 @@ namespace AugGISDataParser
 		{
 			Shapefile shapefile = Shapefile.OpenFile(a_shpFilePath);
 			VectorLayerSetting vectorLayerSetting = ParseFeatureSet(shapefile);
-			vectorLayerSetting.featureSet = shapefile;
 			shapefile.Close();
 			return vectorLayerSetting;
 		}
 
-		public static FeatureSet GetFeatureSetFromGeoJson(string a_geoJsonPath)
+		public static GeoJsonFeatureSets GetFeatureSetFromGeoJson(string a_geoJsonPath)
 		{
 			string jsonString = File.ReadAllText(a_geoJsonPath);
 			FeatureCollection featureCollection = jsonReader.Read<FeatureCollection>(jsonString);
 			
-			FeatureSet featureSet = new FeatureSet();
+			FeatureSet pointFeatureSet = new FeatureSet();
+			FeatureSet lineFeatureSet = new FeatureSet();
+			FeatureSet polygonFeatureSet = new FeatureSet();
+			
 			foreach (NetTopologySuite.Features.IFeature netTopologyFeature in featureCollection)
 			{
-				featureSet.AddFeature(netTopologyFeature.Geometry);
+				switch (netTopologyFeature.Geometry.GeometryType)
+				{
+					case Geometry.TypeNamePoint:
+						pointFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, pointFeatureSet);
+						break;
+					case Geometry.TypeNameLineString:
+						lineFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, lineFeatureSet);
+						break;
+					case Geometry.TypeNamePolygon:
+						polygonFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, polygonFeatureSet);
+						break;
+					default:
+						throw new Exception("Unknown geometry type");
+						break;
+				}
 			}
 
-			return featureSet;
+			GeoJsonFeatureSets geoJsonFeatureSets =
+				new GeoJsonFeatureSets(pointFeatureSet, lineFeatureSet, polygonFeatureSet);
+			return geoJsonFeatureSets;
 		}
+
+		private static void ConvertAttributesFromNetTopologyToDotSpatial(NetTopologySuite.Features.IFeature a_netTopologyFeature, FeatureSet a_featureSet)
+		{
+			if (a_netTopologyFeature.Attributes == null || a_netTopologyFeature.Attributes.Count == 0)
+			{
+				return;
+			}
+
+			foreach (string key in a_netTopologyFeature.Attributes.GetNames())
+			{
+				if (a_featureSet.DataTable.Columns.Contains(key))
+				{
+					continue;
+				}
+
+				a_featureSet.DataTable.Columns.Add(new DataColumn(key));
+			}
+			
+			a_featureSet.DataTable.Rows.Add(a_netTopologyFeature.Attributes.GetValues());
+		}
+		
 
 		public static VectorLayerSetting ParseFeatureSet(FeatureSet a_featureSet)
 		{
@@ -123,6 +189,37 @@ namespace AugGISDataParser
 
 			vectorLayerSetting.extentsMin = new Vector2(a_featureSet.Extent.MinX, a_featureSet.Extent.MinY);
 			vectorLayerSetting.extentsMax = new Vector2(a_featureSet.Extent.MaxX, a_featureSet.Extent.MaxY);
+			vectorLayerSetting.featureSet = a_featureSet;
+
+			foreach (IFeature feature in vectorLayerSetting.featureSet.Features)
+			{
+				if (feature.DataRow == null)
+				{
+					continue;
+				}
+				for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
+				{
+					string attribKey = feature.DataRow.Table.Columns[attribIndex].ToString();
+					string? attribValue = feature.DataRow[attribIndex].ToString();
+
+					if (vectorLayerSetting.attributeKeyToValues.ContainsKey(attribKey))
+					{
+						List<string> attributeValues = vectorLayerSetting.attributeKeyToValues[attribKey];
+
+						if (!attributeValues.Contains(attribValue))
+						{
+							attributeValues.Add(attribValue);
+						}
+					}
+					else
+					{
+						List<string> attributeValues = new List<string>();
+						attributeValues.Add(attribValue);
+						vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
+					}
+				}
+			}
+			
 			return vectorLayerSetting;
 		}
 		

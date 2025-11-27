@@ -205,7 +205,6 @@ internal class AugGISConfigToolGUIApp : Application
 			{
 				loadedSettingsDataModel =
 					SettingsDataCreator.CreateSettingsDataModelFromGisData(_openGisFolderHandle.pickedPath);
-				loadedSettingsDataModel.OnAfterLoad();
 				_openGisFolderHandle.hasFinished = false;
 			}
 			catch (Exception e)
@@ -222,7 +221,6 @@ internal class AugGISConfigToolGUIApp : Application
 			{
 				loadedSettingsDataModel =
 					SettingsDataCreator.LoadSettingsDataModelFromFile(_openSettingsFileHandle.pickedPath);
-				loadedSettingsDataModel.OnAfterLoad();
 				_openSettingsFileHandle.hasFinished = false;
 			}
 			catch (Exception e)

@@ -25,7 +25,7 @@ namespace AugGISDataParser
 		{
 			// ReSharper disable once UnusedVariable
 			DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider grp = new DotSpatial.Data.Rasters.GdalExtension.GdalRasterProvider();
-			
+
 			foreach (VectorLayerSetting vectorLayerSetting in vectorLayerSettings)
 			{
 				if (vectorLayerSetting.featureSet == null)
@@ -34,37 +34,32 @@ namespace AugGISDataParser
 					{
 						vectorLayerSetting.featureSet = Shapefile.OpenFile(vectorLayerSetting.shapeFilePath);
 					}
-					else if (vectorLayerSetting.shapeFilePath.EndsWith(".json") || vectorLayerSetting.shapeFilePath.EndsWith(".geojson"))
+					else if (vectorLayerSetting.shapeFilePath.EndsWith(".json") ||
+					         vectorLayerSetting.shapeFilePath.EndsWith(".geojson"))
 					{
-						vectorLayerSetting.featureSet = SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
-					}
-				}
-				
-				foreach (IFeature feature in vectorLayerSetting.featureSet.Features)
-				{
-					for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
-					{
-						string attribKey = feature.DataRow.Table.Columns[attribIndex].ToString();
-						string? attribValue = feature.DataRow[attribIndex].ToString();
+						GeoJsonFeatureSets geoJsonFeatureSets = SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
 
-						if (vectorLayerSetting.attributeKeyToValues.ContainsKey(attribKey))
+						if (vectorLayerSetting.tags.Contains("Point"))
 						{
-							List<string> attributeValues = vectorLayerSetting.attributeKeyToValues[attribKey];
-
-							if (!attributeValues.Contains(attribValue))
-							{
-								attributeValues.Add(attribValue);
-							}
+							vectorLayerSetting.featureSet = geoJsonFeatureSets.pointFeatureSet;
+						}
+						else if (vectorLayerSetting.tags.Contains("Line"))
+						{
+							vectorLayerSetting.featureSet = geoJsonFeatureSets.lineFeatureSet;
+						}
+						else if (vectorLayerSetting.tags.Contains("Polygon"))
+						{
+							vectorLayerSetting.featureSet = geoJsonFeatureSets.polygonFeatureSet;
 						}
 						else
 						{
-							List<string> attributeValues = new List<string>();
-							attributeValues.Add(attribValue);
-							vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
+							throw new Exception("Layer does NOT contain any supported tag");
 						}
 					}
 				}
 			}
+			
+			
 		}
 	}
 }
