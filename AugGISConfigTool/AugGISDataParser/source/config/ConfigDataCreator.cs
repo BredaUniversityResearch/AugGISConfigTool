@@ -2,6 +2,7 @@
 using System.Drawing.Imaging;
 using System.IO.Compression;
 using DotSpatial.Data;
+using DotSpatial.Projections;
 using NetTopologySuite.Geometries;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -55,6 +56,8 @@ namespace AugGISDataParser
                     configVectorLayer.layerTypes.Add(new LayerType() {name = type});
                 }
 
+                ProjectionInfo projectionInfo = DotSpatial.Projections.ProjectionInfo.FromProj4String(a_settingsDataModel.projection);
+                
                 foreach (IFeature shapeFeature in vectorLayerSetting.featureSet.Features)
                 {
                     ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
