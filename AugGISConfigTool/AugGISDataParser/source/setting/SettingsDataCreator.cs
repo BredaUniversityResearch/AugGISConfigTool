@@ -209,7 +209,13 @@ namespace AugGISDataParser
 				a_featureSet.DataTable.Columns.Add(new DataColumn(key));
 			}
 			
-			a_featureSet.DataTable.Rows.Add(a_netTopologyFeature.Attributes.GetValues());
+			object[] attributeValues = a_netTopologyFeature.Attributes.GetValues();
+			DataRow row = a_featureSet.DataTable.NewRow();
+			row.ItemArray = attributeValues;
+			foreach (IFeature feature in a_featureSet.Features)
+			{
+				feature.DataRow.ItemArray = attributeValues;
+			}
 		}
 		
 
