@@ -28,7 +28,7 @@ namespace AugGISDataParser
 		public List<LayerData> layerData = new List<LayerData>();
 		
 		[JsonProperty("types")]
-		public List<LayerType> layerTypes = new List<LayerType>();
+		public List<LayerTypeData> layerTypes = new List<LayerTypeData>();
 		
 		public List<string> tags = new List<string>();
 	}

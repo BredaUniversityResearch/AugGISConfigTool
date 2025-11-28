@@ -53,7 +53,7 @@ namespace AugGISDataParser
 
                 foreach (string type in types)
                 {
-                    configVectorLayer.layerTypes.Add(new LayerType() {name = type});
+                    configVectorLayer.layerTypes.Add(new LayerTypeData() {name = type});
                 }
 
                 ProjectionInfo projectionInfo = DotSpatial.Projections.ProjectionInfo.FromProj4String(a_settingsDataModel.projection);

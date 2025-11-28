@@ -12,7 +12,7 @@ public class RasterLayerSetting
 
 	[JsonProperty("mapping")] public List<RasterMapping> rasterMappings = new List<RasterMapping>();
 
-	[JsonProperty("types")] public List<LayerType> rasterLayerTypes = new List<LayerType>();
+	[JsonProperty("types")] public List<LayerTypeData> rasterLayerTypes = new List<LayerTypeData>();
 
 	[JsonProperty("scale")] public RasterScale rasterScale = new RasterScale()
 		{ minValue = 0, maxValue = 0, interpolation = RasterScale.EInterpolation.Lin };

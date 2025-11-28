@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DotSpatial.Data;
+using DotSpatial.Symbology;
 
 namespace AugGISDataParser
 {
@@ -20,6 +21,9 @@ namespace AugGISDataParser
 		[JsonIgnore] public FeatureSet? featureSet = null;
 		
 		public Dictionary<string, List<string>> attributeKeyToValues = new Dictionary<string, List<string>>();
+
+		public List<LayerTypeData> layerTypeData = new List<LayerTypeData>();
+		
 		[JsonIgnore] 
 		public Vector2 extentsMin;
 		[JsonIgnore]

@@ -2,6 +2,7 @@ using System.Text;
 using AugGISDataParser;
 using DotSpatial.Data;
 using DotSpatial.Data.Properties;
+using DotSpatial.Symbology;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
 using Hexa.NET.Utilities;
@@ -20,6 +21,12 @@ internal class AugGISConfigToolGUIApp : Application
 	private OpenFileDialogHandle _exportConfigFileHandle = new OpenFileDialogHandle();
 	private OpenFileDialogHandle _saveSettingsFileHandle = new OpenFileDialogHandle();
 
+	static void Main()
+	{
+		AugGISConfigToolGUIApp app = new AugGISConfigToolGUIApp("AugGIS Config Tool", 1200, 700);
+		app.Run();
+	}
+	
 	private AugGISConfigToolGUIApp(string a_appName, int a_windowWidth, int a_windowHeight) : base(a_appName,
 		a_windowWidth, a_windowHeight)
 	{
@@ -48,20 +55,28 @@ internal class AugGISConfigToolGUIApp : Application
 			if (ImGui.Begin("AugGis Config Tool", ref m_isOpen,
 				    ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoSavedSettings))
 			{
-				ImGui.BeginChild("Settings");
-
 				if (loadedSettingsDataModel != null)
 				{
-					ImGuiDrawSettings(loadedSettingsDataModel);
+					ImGui.BeginChild("Settings");
+
+					ImGuiAugGisDrawer.DrawSettingsDataModel(loadedSettingsDataModel);
+
+					if (ImGui.Button("Save Settings"))
+					{
+						ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
+					}
+
+					if (ImGui.Button("Export to config file"))
+					{
+						ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _exportConfigFileHandle);
+					}
+
+					ImGui.EndChild();
 				}
-
-				CheckFileHandles();
-
-				ImGui.EndChild();
-
 				ImGui.End();
 			}
 
+			CheckFileHandles();
 			ImGui.ShowDemoWindow();
 		}
 	}
@@ -93,110 +108,6 @@ internal class AugGISConfigToolGUIApp : Application
 		ImGui.EndMainMenuBar();
 	}
 
-	private unsafe void ImGuiDrawSettings(SettingsDataModel a_settingsDataModel)
-	{
-		ImGui.InputText("Region", ref a_settingsDataModel.region, 100);
-
-		ImGui.PushItemWidth(100);
-		ImGui.InputDouble("Min X", ref a_settingsDataModel.coordinate0.x);
-		ImGui.SameLine();
-		ImGui.InputDouble("Min Y", ref a_settingsDataModel.coordinate0.y);
-
-		ImGui.InputDouble("Max X", ref a_settingsDataModel.coordinate1.x);
-		ImGui.SameLine();
-		ImGui.InputDouble("Max Y", ref a_settingsDataModel.coordinate1.y);
-		ImGui.PopItemWidth();
-
-		if (ImGui.TreeNode("Vector Layer Settings"))
-		{
-			for (int i = 0; i < a_settingsDataModel.vectorLayerSettings.Count; i++)
-			{
-				VectorLayerSetting vectorLayerSetting = a_settingsDataModel.vectorLayerSettings[i];
-				ImGuiDrawVectorLayerSettings(vectorLayerSetting, i);
-			}
-
-			ImGui.TreePop();
-		}
-
-		if (ImGui.TreeNode("Raster Layer Settings"))
-		{
-			for (int i = 0; i < a_settingsDataModel.rasterLayerSettings.Count; i++)
-			{
-				RasterLayerSetting rasterLayerSetting = a_settingsDataModel.rasterLayerSettings[i];
-				ImGuiDrawRasterLayerSettings(rasterLayerSetting, i);
-			}
-
-			ImGui.TreePop();
-		}
-
-		if (ImGui.Button("Save Settings"))
-		{
-			ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
-		}
-
-		if (ImGui.Button("Export to config file"))
-		{
-			ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _exportConfigFileHandle);
-		}
-	}
-
-	private void ImGuiDrawVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting, int a_id)
-	{
-		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(), a_vectorLayerSetting.name))
-		{
-			ImGuiDrawShapeTypeSelection(a_vectorLayerSetting);
-			ImGuiDrawDynamicStringList("Tags",a_vectorLayerSetting.tags);
-			ImGui.TreePop();
-		}
-
-		ImGui.PopID();
-	}
-
-	private void ImGuiDrawShapeTypeSelection(VectorLayerSetting a_vectorLayerSetting)
-	{
-		if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.type))
-		{
-			foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
-			{
-				if (ImGui.Selectable(key))
-				{
-					a_vectorLayerSetting.type = key;
-				}
-			}
-
-			ImGui.EndCombo();
-		}
-	}
-
-	private void ImGuiDrawRasterLayerSettings(RasterLayerSetting a_rasterLayerSetting, int a_id)
-	{
-		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(), a_rasterLayerSetting.name))
-		{
-			ImGui.PushID("TypeSettings");
-			ImGuiDrawRasterLayerTypeSettings(a_rasterLayerSetting);
-			ImGui.PopID();
-
-			ImGui.PushID("TagsSettings");
-			ImGuiDrawRasterTags(a_rasterLayerSetting);
-			ImGui.PopID();
-			
-			ImGui.PushID("MappingSettings");
-			ImGuiDrawRasterLayerMappingSettings(a_rasterLayerSetting);
-			ImGui.PopID();
-
-			ImGui.PushID("ScaleSettings");
-			ImGuiDrawRasterLayerScaleSettings(a_rasterLayerSetting);
-			ImGui.PopID();
-
-			ImGui.TreePop();
-		}
-
-		ImGui.PopID();
-	}
-
-
 	private void CheckFileHandles()
 	{
 		if (_openGisFolderHandle.hasFinished)
@@ -210,7 +121,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid GIS Folder", "Ok",
+				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid GIS Folder", "Ok",
 					() => _openGisFolderHandle.hasFinished = false);
 			}
 		}
@@ -226,7 +137,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings File", "Ok",
+				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings File", "Ok",
 					() => _openSettingsFileHandle.hasFinished = false);
 			}
 		}
@@ -243,7 +154,7 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid config path!", "Ok",
+				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid config path!", "Ok",
 					() => { _exportConfigFileHandle.hasFinished = false; });
 			}
 		}
@@ -259,196 +170,9 @@ internal class AugGISConfigToolGUIApp : Application
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ImGuiShowErrorPopupModal("Invalid Settings Path", "Ok",
+				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings Path", "Ok",
 					() => _saveSettingsFileHandle.hasFinished = false);
 			}
 		}
-	}
-
-	private void ImGuiDrawRasterLayerTypeSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_rasterLayerSetting.rasterLayerTypes.Add(new LayerType());
-		}
-
-		ImGui.SameLine();
-		if (ImGui.TreeNode("Types"))
-		{
-			for (int i = a_rasterLayerSetting.rasterLayerTypes.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_rasterLayerSetting.rasterLayerTypes.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
-
-				ImGui.SameLine();
-				ImGui.InputText("Type", ref a_rasterLayerSetting.rasterLayerTypes[i].name, (nuint)255);
-				ImGui.PopID();
-			}
-
-			ImGui.TreePop();
-		}
-	}
-
-	private void ImGuiDrawRasterLayerMappingSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_rasterLayerSetting.rasterMappings.Add(new RasterMapping());
-		}
-
-		ImGui.SameLine();
-		if (ImGui.TreeNode("Mappings"))
-		{
-			for (int i = a_rasterLayerSetting.rasterMappings.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_rasterLayerSetting.rasterMappings.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
-
-				ImGui.SameLine();
-				if (ImGui.TreeNode("Mapping"))
-				{
-					RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
-					ImGui.InputInt("Min", ref currentMapping.min);
-					ImGui.InputInt("Max", ref currentMapping.max);
-					string previewName = a_rasterLayerSetting.rasterLayerTypes.Count == 0
-						? "##"
-						: a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name;
-					if (ImGui.BeginCombo("Choose Type", previewName))
-					{
-						foreach (LayerType type in a_rasterLayerSetting.rasterLayerTypes)
-						{
-							string selectableLabel = type.name == String.Empty ? "##" : type.name;
-							if (ImGui.Selectable(selectableLabel))
-							{
-								currentMapping.typeIndex = a_rasterLayerSetting.rasterLayerTypes.IndexOf(type);
-							}
-						}
-
-						ImGui.EndCombo();
-					}
-
-					ImGui.TreePop();
-				}
-
-				ImGui.PopID();
-			}
-
-			ImGui.TreePop();
-		}
-	}
-
-	private void ImGuiDrawRasterLayerScaleSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.TreeNode("Scale"))
-		{
-			RasterScale currentScale = a_rasterLayerSetting.rasterScale;
-			ImGui.InputInt("Min", ref currentScale.minValue);
-			ImGui.InputInt("Max", ref currentScale.maxValue);
-			if (ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
-			{
-				for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
-				{
-					RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
-					if (ImGui.Selectable(currentInterpolation.ToString()))
-					{
-						currentScale.interpolation = (RasterScale.EInterpolation)enumIndex;
-					}
-				}
-
-				ImGui.EndCombo();
-			}
-
-			if (currentScale.interpolation == RasterScale.EInterpolation.LinGrouped)
-			{
-				if (ImGui.Button("+"))
-				{
-					a_rasterLayerSetting.rasterScale.interpolationGroups.Add(new RasterScale.InterpolationGroup());
-				}
-
-				ImGui.SameLine();
-				if (ImGui.TreeNode("Linear Scale Groups"))
-				{
-					for (int i = a_rasterLayerSetting.rasterScale.interpolationGroups.Count - 1; i >= 0; i--)
-					{
-						ImGui.PushID(i);
-						if (ImGui.Button("-"))
-						{
-							a_rasterLayerSetting.rasterScale.interpolationGroups.RemoveAt(i);
-							ImGui.PopID();
-							continue;
-						}
-
-						ImGui.SameLine();
-						if (ImGui.TreeNode("Group"))
-						{
-							RasterScale.InterpolationGroup currentGroup =
-								a_rasterLayerSetting.rasterScale.interpolationGroups[i];
-							ImGui.InputDouble("Normalised Input Value", ref currentGroup.normalisedInputValue);
-							ImGui.InputInt("Min Output Value", ref currentGroup.minOutputValue);
-
-							ImGui.TreePop();
-						}
-
-						ImGui.PopID();
-					}
-
-					ImGui.TreePop();
-				}
-			}
-
-			ImGui.TreePop();
-		}
-	}
-
-	private void ImGuiDrawRasterTags(RasterLayerSetting a_rasterLayerSetting)
-	{
-		ImGuiDrawDynamicStringList("Tags",a_rasterLayerSetting.tags);
-	}
-	
-	private void ImGuiDrawDynamicStringList(string a_label, List<string> a_stringList)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_stringList.Add(string.Empty);
-		}
-
-		ImGui.SameLine();
-		if (ImGui.TreeNode(a_label))
-		{
-			for (int i = a_stringList.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_stringList.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
-
-				ImGui.SameLine();
-				string currentString = a_stringList[i];
-				ImGui.InputText("Type", ref currentString, (nuint)255);
-				a_stringList[i] = currentString;
-				ImGui.PopID();
-			}
-
-			ImGui.TreePop();
-		}
-	}
-
-	static void Main()
-	{
-		AugGISConfigToolGUIApp app = new AugGISConfigToolGUIApp("AugGIS Config Tool", 1200, 700);
-		app.Run();
 	}
 }
