@@ -3,6 +3,7 @@ using DotSpatial.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text;
+using DotSpatial.Projections;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
@@ -13,6 +14,9 @@ namespace AugGISDataParser
 {
 	public static class SettingsDataCreator
 	{
+		private static int WGS84EsriCode = 4326;
+		private static int ETRS89EsriCode = 3035;
+		
 		private static GeoJsonReader jsonReader = new GeoJsonReader();
 		public static SettingsDataModel CreateSettingsDataModelFromGisData(string a_gisDataDirectoryPath)
 		{
@@ -52,12 +56,6 @@ namespace AugGISDataParser
 			{
 				VectorLayerSetting vectorLayerSetting = ParseShapeFile(shpFilePath);
 
-				if (vectorLayerSetting.extentsMin.x < coordinateMin.x) coordinateMin.x = vectorLayerSetting.extentsMin.x;
-				if (vectorLayerSetting.extentsMin.y < coordinateMin.y) coordinateMin.y = vectorLayerSetting.extentsMin.y;
-
-				if (vectorLayerSetting.extentsMax.x > coordinateMax.x) coordinateMax.x = vectorLayerSetting.extentsMax.x;
-				if (vectorLayerSetting.extentsMax.y > coordinateMax.y) coordinateMax.y = vectorLayerSetting.extentsMax.y;
-
 				settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
 				vectorLayerSetting.shapeFilePath = shpFilePath;
 			}
@@ -70,6 +68,7 @@ namespace AugGISDataParser
 				if (geoJsonFeatureSets.pointFeatureSet?.Features.Count > 0)
 				{
 					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.pointFeatureSet);
+					
 					vectorLayerSetting.name = jsonFileName + "_point";
 					vectorLayerSetting.shapeFilePath = geoJsonFile;
 					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
@@ -78,6 +77,7 @@ namespace AugGISDataParser
 				if (geoJsonFeatureSets.lineFeatureSet?.Features.Count > 0)
 				{
 					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.lineFeatureSet);
+					
 					vectorLayerSetting.shapeFilePath = geoJsonFile;
 					vectorLayerSetting.name = jsonFileName + "_line";
 					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
@@ -86,6 +86,7 @@ namespace AugGISDataParser
 				if (geoJsonFeatureSets.polygonFeatureSet?.Features.Count > 0)
 				{
 					VectorLayerSetting vectorLayerSetting = ParseFeatureSet(geoJsonFeatureSets.polygonFeatureSet);
+					
 					vectorLayerSetting.shapeFilePath = geoJsonFile;
 					vectorLayerSetting.name = jsonFileName + "_polygon";
 					settingsDataModel.vectorLayerSettings.Add(vectorLayerSetting);
@@ -109,6 +110,15 @@ namespace AugGISDataParser
 				settingsDataModel.rasterLayerSettings.Add(rasterLayerSetting);
 			}
 
+			foreach (VectorLayerSetting loadedVectorLayerSetting in settingsDataModel.vectorLayerSettings)
+			{
+				if (loadedVectorLayerSetting.extentsMin.x < coordinateMin.x) coordinateMin.x = loadedVectorLayerSetting.extentsMin.x;
+				if (loadedVectorLayerSetting.extentsMin.y < coordinateMin.y) coordinateMin.y = loadedVectorLayerSetting.extentsMin.y;
+
+				if (loadedVectorLayerSetting.extentsMax.x > coordinateMax.x) coordinateMax.x = loadedVectorLayerSetting.extentsMax.x;
+				if (loadedVectorLayerSetting.extentsMax.y > coordinateMax.y) coordinateMax.y = loadedVectorLayerSetting.extentsMax.y;
+			}
+
 			settingsDataModel.coordinate0 = coordinateMin;
 			settingsDataModel.coordinate1 = coordinateMax;
 
@@ -127,7 +137,7 @@ namespace AugGISDataParser
 		{
 			string jsonString = File.ReadAllText(a_geoJsonPath);
 			FeatureCollection featureCollection = jsonReader.Read<FeatureCollection>(jsonString);
-			
+
 			FeatureSet pointFeatureSet = new FeatureSet();
 			FeatureSet lineFeatureSet = new FeatureSet();
 			FeatureSet polygonFeatureSet = new FeatureSet();
@@ -152,6 +162,29 @@ namespace AugGISDataParser
 						throw new Exception("Unknown geometry type");
 						break;
 				}
+			}
+
+			ProjectionInfo ogGeoJsonProjection = ProjectionInfo.FromEpsgCode(WGS84EsriCode);
+			pointFeatureSet.Projection = ogGeoJsonProjection;
+			lineFeatureSet.Projection = ogGeoJsonProjection;
+			polygonFeatureSet.Projection = ogGeoJsonProjection;
+
+			if (pointFeatureSet.Features.Count > 0)
+			{
+				pointFeatureSet.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
+				pointFeatureSet.UpdateExtent();
+			}
+
+			if (lineFeatureSet.Features.Count > 0)
+			{
+				lineFeatureSet.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
+				pointFeatureSet.UpdateExtent();
+			}
+
+			if (polygonFeatureSet.Features.Count > 0)
+			{
+				polygonFeatureSet.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
+				pointFeatureSet.UpdateExtent();
 			}
 
 			GeoJsonFeatureSets geoJsonFeatureSets =

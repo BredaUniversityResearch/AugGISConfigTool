@@ -5,7 +5,7 @@ namespace AugGISDataParser
 	public class ConfigDataModel
 	{
 		public string region = "";
-		public string projection = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs";
+		public string projection = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs";
 		public double[] coordinate0 = new double[2];
 		public double[] coordinate1 =  new double[2];
 

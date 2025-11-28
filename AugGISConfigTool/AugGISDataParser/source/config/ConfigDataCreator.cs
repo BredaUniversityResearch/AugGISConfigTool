@@ -57,7 +57,7 @@ namespace AugGISDataParser
                 }
 
                 ProjectionInfo projectionInfo = DotSpatial.Projections.ProjectionInfo.FromProj4String(a_settingsDataModel.projection);
-                
+                //DotSpatial.Projections.Reproject.ReprojectPoints();
                 foreach (IFeature shapeFeature in vectorLayerSetting.featureSet.Features)
                 {
                     ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
