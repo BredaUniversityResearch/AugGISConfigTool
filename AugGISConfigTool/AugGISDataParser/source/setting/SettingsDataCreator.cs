@@ -147,16 +147,16 @@ namespace AugGISDataParser
 				switch (netTopologyFeature.Geometry.GeometryType)
 				{
 					case Geometry.TypeNamePoint:
-						pointFeatureSet.AddFeature(netTopologyFeature.Geometry);
-						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, pointFeatureSet);
+						IFeature pointFeature = pointFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, pointFeature);
 						break;
 					case Geometry.TypeNameLineString:
-						lineFeatureSet.AddFeature(netTopologyFeature.Geometry);
-						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, lineFeatureSet);
+						IFeature lineFeature = lineFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, lineFeature);
 						break;
 					case Geometry.TypeNamePolygon:
-						polygonFeatureSet.AddFeature(netTopologyFeature.Geometry);
-						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, polygonFeatureSet);
+						IFeature polygonFeature = polygonFeatureSet.AddFeature(netTopologyFeature.Geometry);
+						ConvertAttributesFromNetTopologyToDotSpatial(netTopologyFeature, polygonFeature);
 						break;
 					default:
 						throw new Exception("Unknown geometry type");
@@ -192,7 +192,7 @@ namespace AugGISDataParser
 			return geoJsonFeatureSets;
 		}
 
-		private static void ConvertAttributesFromNetTopologyToDotSpatial(NetTopologySuite.Features.IFeature a_netTopologyFeature, FeatureSet a_featureSet)
+		private static void ConvertAttributesFromNetTopologyToDotSpatial(NetTopologySuite.Features.IFeature a_netTopologyFeature, DotSpatial.Data.IFeature a_dotSpatialFeature)
 		{
 			if (a_netTopologyFeature.Attributes == null || a_netTopologyFeature.Attributes.Count == 0)
 			{
@@ -201,20 +201,16 @@ namespace AugGISDataParser
 
 			foreach (string key in a_netTopologyFeature.Attributes.GetNames())
 			{
-				if (a_featureSet.DataTable.Columns.Contains(key))
+				if (!a_dotSpatialFeature.DataRow.Table.Columns.Contains(key))
 				{
-					continue;
+					a_dotSpatialFeature.DataRow.Table.Columns.Add(new DataColumn(key));
 				}
-
-				a_featureSet.DataTable.Columns.Add(new DataColumn(key));
-			}
-			
-			object[] attributeValues = a_netTopologyFeature.Attributes.GetValues();
-			DataRow row = a_featureSet.DataTable.NewRow();
-			row.ItemArray = attributeValues;
-			foreach (IFeature feature in a_featureSet.Features)
-			{
-				feature.DataRow.ItemArray = attributeValues;
+				
+				object attributeValue = a_netTopologyFeature.Attributes[key];
+				if (attributeValue != null)
+				{
+					a_dotSpatialFeature.DataRow[key] = a_netTopologyFeature.Attributes[key];
+				}
 			}
 		}
 		
