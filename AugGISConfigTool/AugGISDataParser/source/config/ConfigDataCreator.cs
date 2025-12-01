@@ -46,19 +46,6 @@ namespace AugGISDataParser
                     configVectorLayer.tags.Add(tag);
                 }
 
-                List<object?> types = new List<object?>();
-                if (vectorLayerSetting.attributeKeyToValues.TryGetValue(vectorLayerSetting.selectedTypeKey, out List<object?>? vectorLayerSettingsTypeValues))
-                {
-                    types = vectorLayerSettingsTypeValues;
-                }
-
-                foreach (string type in types)
-                {
-                    configVectorLayer.layerTypeData.Add(new LayerTypeData() {name = type});
-                }
-
-                ProjectionInfo projectionInfo = DotSpatial.Projections.ProjectionInfo.FromProj4String(a_settingsDataModel.projection);
-                //DotSpatial.Projections.Reproject.ReprojectPoints();
                 foreach (IFeature shapeFeature in vectorLayerSetting.featureSet.Features)
                 {
                     ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
