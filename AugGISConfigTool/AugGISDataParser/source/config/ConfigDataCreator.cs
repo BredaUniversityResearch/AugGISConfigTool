@@ -45,8 +45,8 @@ namespace AugGISDataParser
                     configVectorLayer.tags.Add(tag);
                 }
 
-                List<string> types = new List<string>();
-                if (vectorLayerSetting.attributeKeyToValues.TryGetValue(vectorLayerSetting.type, out List<string>? vectorLayerSettingsTypeValues))
+                List<object?> types = new List<object?>();
+                if (vectorLayerSetting.attributeKeyToValues.TryGetValue(vectorLayerSetting.selectedTypeKey, out List<object?>? vectorLayerSettingsTypeValues))
                 {
                     types = vectorLayerSettingsTypeValues;
                 }
@@ -76,10 +76,10 @@ namespace AugGISDataParser
 
                     configLayerData.gaps = new double[0, 0]; //TODO handle gaps
 
-                    List<string> attributes = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.type];
+                    List<object?> attributes = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.selectedTypeKey];
 
-                    int attributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(vectorLayerSetting.type);
-                    string value = shapeFeature.DataRow[attributeIndex].ToString();
+                    int attributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(vectorLayerSetting.selectedTypeKey);
+                    object? value = shapeFeature.DataRow[attributeIndex];
 
                     configLayerData.typeIndices.Add(attributes.IndexOf(value));
                     configVectorLayer.layerData.Add(configLayerData);

@@ -99,6 +99,7 @@ public static class ImGuiAugGisDrawer
 		{
 			DrawVectorLayerTypeSelection(a_vectorLayerSetting);
 			DrawDynamicStringList("Tags",a_vectorLayerSetting.tags);
+			DrawLayerTypesForVectorLayerSettings(a_vectorLayerSetting);
 			ImGui.TreePop();
 		}
 
@@ -107,13 +108,21 @@ public static class ImGuiAugGisDrawer
 
 	public static void DrawVectorLayerTypeSelection(VectorLayerSetting a_vectorLayerSetting)
 	{
-		if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.type))
+		if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.selectedTypeKey))
 		{
 			foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
 			{
 				if (ImGui.Selectable(key))
 				{
-					a_vectorLayerSetting.type = key;
+					if (a_vectorLayerSetting.selectedTypeKey != key)
+					{
+						a_vectorLayerSetting.layerTypeData.Clear();
+						foreach (var attribValue in a_vectorLayerSetting.attributeKeyToValues[key])
+						{
+							a_vectorLayerSetting.layerTypeData.Add(new LayerTypeData(){name = attribValue.ToString()});
+						}
+					}
+					a_vectorLayerSetting.selectedTypeKey = key;
 				}
 			}
 
@@ -327,6 +336,28 @@ public static class ImGuiAugGisDrawer
 	public static void DrawRasterTags(RasterLayerSetting a_rasterLayerSetting)
 	{
 		DrawDynamicStringList("Tags",a_rasterLayerSetting.tags);
+	}
+
+	public static void DrawLayerTypesForVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting)
+	{
+		if(ImGui.TreeNode("Type Data Settings"))
+		{
+			ImGui.PushID("Type Data Settings");
+			for(int i = 0; i< a_vectorLayerSetting.layerTypeData.Count; i++)
+			{
+				LayerTypeData  layerTypeData = a_vectorLayerSetting.layerTypeData[i]; 
+				ImGui.PushID(i);
+				if (ImGui.TreeNode(layerTypeData.name))
+				{
+					DrawLayerTypeData(layerTypeData);
+					ImGui.TreePop();
+				}
+				ImGui.PopID();
+			}
+			
+			ImGui.PopID();
+			ImGui.TreePop();
+		}
 	}
 	
 	public static void DrawLayerTypeData(LayerTypeData a_layerTypeData)

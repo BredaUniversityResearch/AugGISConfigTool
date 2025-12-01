@@ -239,11 +239,17 @@ namespace AugGISDataParser
 				for (int attribIndex = 0; attribIndex < feature.DataRow.Table.Columns.Count; attribIndex++)
 				{
 					string attribKey = feature.DataRow.Table.Columns[attribIndex].ToString();
-					string? attribValue = feature.DataRow[attribIndex].ToString();
-
+					object? attribValue = feature.DataRow[attribIndex];
+					
+					//skip null values
+					if (attribValue == DBNull.Value)
+					{
+						continue;
+					}
+					
 					if (vectorLayerSetting.attributeKeyToValues.ContainsKey(attribKey))
 					{
-						List<string> attributeValues = vectorLayerSetting.attributeKeyToValues[attribKey];
+						List<object?> attributeValues = vectorLayerSetting.attributeKeyToValues[attribKey];
 
 						if (!attributeValues.Contains(attribValue))
 						{
@@ -252,8 +258,7 @@ namespace AugGISDataParser
 					}
 					else
 					{
-						List<string> attributeValues = new List<string>();
-						attributeValues.Add(attribValue);
+						List<object?> attributeValues = new List<object?> {attribValue};
 						vectorLayerSetting.attributeKeyToValues[attribKey] = attributeValues;
 					}
 				}

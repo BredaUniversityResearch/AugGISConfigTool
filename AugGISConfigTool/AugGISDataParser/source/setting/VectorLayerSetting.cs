@@ -13,14 +13,14 @@ namespace AugGISDataParser
 	public class VectorLayerSetting
 	{
 		public string name = string.Empty;
-		public string type = string.Empty;
+		public string selectedTypeKey = string.Empty;
 		
 		public List<string> tags = new List<string>();
 
 		public string shapeFilePath = string.Empty;
 		[JsonIgnore] public FeatureSet? featureSet = null;
 		
-		public Dictionary<string, List<string>> attributeKeyToValues = new Dictionary<string, List<string>>();
+		public Dictionary<string, List<object?>> attributeKeyToValues = new Dictionary<string, List<object?>>();
 
 		public List<LayerTypeData> layerTypeData = new List<LayerTypeData>();
 		
