@@ -39,6 +39,7 @@ namespace AugGISDataParser
 
                 configVectorLayer.name = vectorLayerSetting.name;
                 configVectorLayer.@short = vectorLayerSetting.name;
+                configVectorLayer.layerTypeData = vectorLayerSetting.layerTypeData;
 
                 foreach (string tag in vectorLayerSetting.tags)
                 {
@@ -53,7 +54,7 @@ namespace AugGISDataParser
 
                 foreach (string type in types)
                 {
-                    configVectorLayer.layerTypes.Add(new LayerTypeData() {name = type});
+                    configVectorLayer.layerTypeData.Add(new LayerTypeData() {name = type});
                 }
 
                 ProjectionInfo projectionInfo = DotSpatial.Projections.ProjectionInfo.FromProj4String(a_settingsDataModel.projection);
