@@ -365,22 +365,14 @@ public static class ImGuiAugGisDrawer
 		ImGui.TextDisabled(a_layerTypeData.name);
 		ImGui.InputInt("Value", ref a_layerTypeData.value);
 		
-		ImGui.Checkbox("Display Polygon", ref a_layerTypeData.displayPolygon);
 		DrawColorInputFromHexString("Polygon Color", ref a_layerTypeData.polygonColor);
 		ImGui.InputText("Polygon Pattern Name", ref a_layerTypeData.polygonPatternName, (nuint)255);
-		ImGui.Checkbox("Enable Inner Glow", ref a_layerTypeData.innerGlowEnabled);
-		ImGui.InputInt("Inner Glow Radius", ref a_layerTypeData.innerGlowRadius);
-		ImGui.InputInt("Inner Glow Iterations", ref a_layerTypeData.innerGlowIterations);
-		ImGui.InputInt("Inner Glow Multiplier", ref a_layerTypeData.innerGlowMultiplier);
-		ImGui.InputInt("Inner Glow Pixel Size", ref a_layerTypeData.innerGlowPixelSize);
 		
-		ImGui.Checkbox("Display Lines", ref a_layerTypeData.displayLines);
 		DrawColorInputFromHexString("Line Color", ref a_layerTypeData.lineColor);
 		ImGui.InputInt("Line Width", ref a_layerTypeData.lineWidth);
 		ImGui.InputText("Line Icon", ref a_layerTypeData.lineIcon, (nuint)255);
 		ImGui.InputText("Line Pattern Type", ref a_layerTypeData.linePatternType, (nuint)255);
 		
-		ImGui.Checkbox("Display Points", ref a_layerTypeData.displayPoints);
 		DrawColorInputFromHexString("Point Color", ref a_layerTypeData.pointColor);
 		ImGui.InputInt("Point Size", ref a_layerTypeData.pointSize);
 		ImGui.InputText("Point Sprite Name", ref a_layerTypeData.pointSpriteName, (nuint)255);
