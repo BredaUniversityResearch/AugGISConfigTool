@@ -3,8 +3,10 @@ using Hexa.NET.ImGui.Backends.OpenGL3;
 using Hexa.NET.ImGui.Backends.SDL3;
 using Hexa.NET.OpenGL;
 using Hexa.NET.SDL3;
+using Hexa.NET.SDL3.Image;
 using SDLEvent = Hexa.NET.SDL3.SDLEvent;
 using SDLWindow = Hexa.NET.SDL3.SDLWindow;
+
 
 namespace AugGISConfigToolGUI;
 
@@ -86,6 +88,9 @@ public class Application
 			}
 
 			_gl = new(new BindingsContext(sdlWindow, context));
+
+			SDLSurface* surface = SDLImage.Load("assets/images/AugGISIcon.png");
+			SDL.SetWindowIcon(sdlWindow, surface);
 		}
 	}
 

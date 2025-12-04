@@ -23,7 +23,7 @@ public static class ServerLauncher
 			ProcessStartInfo startInfo = new ProcessStartInfo
 			{
 				FileName = a_serverExePath,
-				Arguments = $"-configUrl: {a_configZipPath}",
+				Arguments = $"configUrl={a_configZipPath}",
 				UseShellExecute = true,
 				WorkingDirectory = Path.GetDirectoryName(a_serverExePath)
 			};

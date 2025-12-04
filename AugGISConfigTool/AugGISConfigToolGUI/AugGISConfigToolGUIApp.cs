@@ -77,7 +77,7 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 
 			CheckFileHandles();
-			ImGui.ShowDemoWindow();
+			//ImGui.ShowDemoWindow();
 		}
 	}
 
