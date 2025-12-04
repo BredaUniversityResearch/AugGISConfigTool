@@ -1,0 +1,3 @@
+create_settings -i  <path_to_GISData_folder> -o <output_path_for_settings_json>
+create_config -i <path_to_settings_json> -o <output_path_for_config_json>
+launch_server --server_path <path_to_server_exe> --config_path <path_to_config_zip> 

@@ -8,7 +8,26 @@ internal class AugGISConfigToolConsoleApp
 	static int Main(string[] args)
 	{
 		RootCommand rootCommand = new RootCommand("AugGIS Config Tool Console");
+		AddCreateSettingsCommand(rootCommand);
+		AddCreateConfigCommand(rootCommand);
+		AddLaunchServerCommand(rootCommand);
+
+		ParseResult parseResult;
+		if (args.Length == 0)
+		{
+			string userInput = Console.ReadLine();
+			parseResult = rootCommand.Parse(userInput);
+		}
+		else
+		{
+			parseResult = rootCommand.Parse(args);
+		}
 		
+		return parseResult.Invoke();
+	}
+
+	private static void AddCreateSettingsCommand(RootCommand a_rootCommand)
+	{
 		Command createSettingsCommand = new Command("create_settings", "Create settings file from GIS data");
 		Option<string> settingInputOption = new Option<string>("--input", "-i")
 		{
@@ -33,8 +52,11 @@ internal class AugGISConfigToolConsoleApp
 			AugGISDataParser.SettingsDataCreator.SaveSettingsDataModelToFile(dataModel,outputSettingsPath);
 		});
 		
-		rootCommand.Add(createSettingsCommand);
-		
+		a_rootCommand.Add(createSettingsCommand);
+	}
+
+	private static void AddCreateConfigCommand(RootCommand a_rootCommand)
+	{
 		Command createConfigCommand = new Command("create_config", "Create config file from settings");
 		Option<string> configInputOption = new Option<string>("--input", "-i")
 		{
@@ -61,19 +83,34 @@ internal class AugGISConfigToolConsoleApp
 			AugGISDataParser.ConfigDataCreator.SaveConfigObjectToFile(configObject, outputConfigFilePath);
 		});
 		
-		rootCommand.Add(createConfigCommand);
+		a_rootCommand.Add(createConfigCommand);
+	}
 
-		ParseResult parseResult;
-		if (args.Length == 0)
+	private static void AddLaunchServerCommand(RootCommand a_rootCommand)
+	{
+		Command launchServerCommand = new Command("launch_server", "Launch AugGIS server with config zip file");
+		Option<string> launchServerPathOption = new Option<string>("--server_path", "-s")
 		{
-			string userInput = Console.ReadLine();
-			parseResult = rootCommand.Parse(userInput);
-		}
-		else
-		{
-			parseResult = rootCommand.Parse(args);
-		}
+			Description = "Path to server EXE",
+			Required = true
+		};
 		
-		return parseResult.Invoke();
+		Option<string> launchServeConfigPathOption = new Option<string>("--config_path", "-c")
+		{
+			Description = "Path to config zip file",
+			Required = true
+		};
+		launchServerCommand.Add(launchServerPathOption);
+		launchServerCommand.Add(launchServeConfigPathOption);
+		
+		launchServerCommand.SetAction((ParseResult a_result) =>
+		{
+			string? serverPath = a_result.GetValue<string>(launchServerPathOption);
+			string? configZipPath = a_result.GetValue<string>(launchServeConfigPathOption);
+
+			AugGISServerLauncher.ServerLauncher.LaunchServer(serverPath, configZipPath);
+		});
+		
+		a_rootCommand.Add(launchServerCommand);
 	}
 }

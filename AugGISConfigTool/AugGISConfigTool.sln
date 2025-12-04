@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISConfigToolConsole", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISConfigToolGUI", "AugGISConfigToolGUI\AugGISConfigToolGUI.csproj", "{A3DE94D8-D106-4B80-A51A-4598108EBEC8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AugGISServerLauncher", "AugGISServerLauncher\AugGISServerLauncher.csproj", "{A8FF917A-6AC2-40F8-944D-88CE238E7FA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A3DE94D8-D106-4B80-A51A-4598108EBEC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8FF917A-6AC2-40F8-944D-88CE238E7FA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8FF917A-6AC2-40F8-944D-88CE238E7FA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8FF917A-6AC2-40F8-944D-88CE238E7FA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8FF917A-6AC2-40F8-944D-88CE238E7FA5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
