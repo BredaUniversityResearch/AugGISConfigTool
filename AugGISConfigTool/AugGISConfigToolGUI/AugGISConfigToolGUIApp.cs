@@ -16,11 +16,15 @@ internal class AugGISConfigToolGUIApp : Application
 	private bool m_isOpen = false;
 	private SettingsDataModel loadedSettingsDataModel = null;
 
-	private OpenFileDialogHandle _openGisFolderHandle = new OpenFileDialogHandle();
-	private OpenFileDialogHandle _openSettingsFileHandle = new OpenFileDialogHandle();
-	private OpenFileDialogHandle _exportConfigFileHandle = new OpenFileDialogHandle();
-	private OpenFileDialogHandle _saveSettingsFileHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle openGisFolderHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle openSettingsFileHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle exportConfigFileHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle saveSettingsFileHandle = new OpenFileDialogHandle();
 
+	private OpenFileDialogHandle serverBuildOpenFileDialogHandle = new OpenFileDialogHandle();
+	private OpenFileDialogHandle configZipOpenFileDialogHandle = new OpenFileDialogHandle();
+	const string launchServerPopupKey = "Launch Server";
+	
 	static void Main()
 	{
 		AugGISConfigToolGUIApp app = new AugGISConfigToolGUIApp("AugGIS Config Tool", 1200, 700);
@@ -63,12 +67,12 @@ internal class AugGISConfigToolGUIApp : Application
 
 					if (ImGui.Button("Save Settings"))
 					{
-						ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _saveSettingsFileHandle);
+						ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, saveSettingsFileHandle);
 					}
 
 					if (ImGui.Button("Export to config file"))
 					{
-						ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _exportConfigFileHandle);
+						ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, exportConfigFileHandle);
 					}
 
 					ImGui.EndChild();
@@ -94,84 +98,114 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			if (ImGui.MenuItem("Open GIS Data Folder"))
 			{
-				ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, _openGisFolderHandle);
+				ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, openGisFolderHandle);
 			}
 
 			if (ImGui.MenuItem("Open Settings File"))
 			{
-				ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, _openSettingsFileHandle);
+				ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, openSettingsFileHandle);
 			}
 
 			ImGui.EndMenu();
 		}
-
+		
+		if (ImGui.MenuItem("Launch Server"))
+		{
+			if (!ImGui.IsPopupOpen(launchServerPopupKey))
+			{
+				ImGui.OpenPopup(launchServerPopupKey);
+			}
+		}
+	
+		if (ImGui.BeginPopupModal(launchServerPopupKey, ImGuiWindowFlags.AlwaysAutoResize))
+		{
+			ImGui.PushID(0);
+			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, serverBuildOpenFileDialogHandle);
+			ImGui.PopID();
+			ImGui.PushID(1);
+			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, configZipOpenFileDialogHandle);
+			ImGui.PopID();
+			bool enableButton = File.Exists(serverBuildOpenFileDialogHandle.pickedPath) &&
+			                      File.Exists(configZipOpenFileDialogHandle.pickedPath);
+						
+			ImGui.BeginDisabled(!enableButton);
+			if (ImGui.Button("Launch"))
+			{
+				AugGISServerLauncher.ServerLauncher.LaunchServer(serverBuildOpenFileDialogHandle.pickedPath, configZipOpenFileDialogHandle.pickedPath);
+				ImGui.CloseCurrentPopup();
+			}
+			
+			ImGui.EndDisabled();
+			ImGui.EndPopup();
+		}
+		
 		ImGui.EndMainMenuBar();
 	}
 
 	private void CheckFileHandles()
 	{
-		if (_openGisFolderHandle.hasFinished)
+		if (openGisFolderHandle.hasFinished)
 		{
 			try
 			{
 				loadedSettingsDataModel =
-					SettingsDataCreator.CreateSettingsDataModelFromGisData(_openGisFolderHandle.pickedPath);
-				_openGisFolderHandle.hasFinished = false;
+					SettingsDataCreator.CreateSettingsDataModelFromGisData(openGisFolderHandle.pickedPath);
+				openGisFolderHandle.hasFinished = false;
 			}
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
 				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid GIS Folder", "Ok",
-					() => _openGisFolderHandle.hasFinished = false);
+					() => openGisFolderHandle.hasFinished = false);
 			}
 		}
 
-		if (_openSettingsFileHandle.hasFinished)
+		if (openSettingsFileHandle.hasFinished)
 		{
 			try
 			{
 				loadedSettingsDataModel =
-					SettingsDataCreator.LoadSettingsDataModelFromFile(_openSettingsFileHandle.pickedPath);
-				_openSettingsFileHandle.hasFinished = false;
+					SettingsDataCreator.LoadSettingsDataModelFromFile(openSettingsFileHandle.pickedPath);
+				openSettingsFileHandle.hasFinished = false;
 			}
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
 				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings File", "Ok",
-					() => _openSettingsFileHandle.hasFinished = false);
+					() => openSettingsFileHandle.hasFinished = false);
 			}
 		}
 
-		if (_exportConfigFileHandle.hasFinished)
+		if (exportConfigFileHandle.hasFinished)
 		{
 			try
 			{
 				JsonConfigObject configObject =
 					ConfigDataCreator.CreateConfigDataModelFromSettings(loadedSettingsDataModel);
-				ConfigDataCreator.SaveConfigObjectToFile(configObject, _exportConfigFileHandle.pickedPath);
-				_exportConfigFileHandle.hasFinished = false;
+				ConfigDataCreator.SaveConfigObjectToFile(configObject, exportConfigFileHandle.pickedPath);
+				exportConfigFileHandle.hasFinished = false;
 			}
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
 				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid config path!", "Ok",
-					() => { _exportConfigFileHandle.hasFinished = false; });
+					() => { exportConfigFileHandle.hasFinished = false; });
 			}
 		}
 
-		if (_saveSettingsFileHandle.hasFinished)
+		if (saveSettingsFileHandle.hasFinished)
 		{
 			try
 			{
 				SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel,
-					_saveSettingsFileHandle.pickedPath);
-				_saveSettingsFileHandle.hasFinished = false;
+					saveSettingsFileHandle.pickedPath);
+				saveSettingsFileHandle.hasFinished = false;
 			}
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
 				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings Path", "Ok",
-					() => _saveSettingsFileHandle.hasFinished = false);
+					() => saveSettingsFileHandle.hasFinished = false);
 			}
 		}
 	}

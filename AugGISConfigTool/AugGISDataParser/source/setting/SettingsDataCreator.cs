@@ -213,7 +213,6 @@ namespace AugGISDataParser
 				}
 			}
 		}
-		
 
 		public static VectorLayerSetting ParseFeatureSet(FeatureSet a_featureSet)
 		{

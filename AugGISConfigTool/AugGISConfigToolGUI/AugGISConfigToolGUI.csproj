@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AugGISDataParser\AugGISDataParser.csproj" />
+    <ProjectReference Include="..\AugGISServerLauncher\AugGISServerLauncher.csproj" />
   </ItemGroup>
 
   <ItemGroup>

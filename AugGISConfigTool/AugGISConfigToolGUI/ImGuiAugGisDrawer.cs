@@ -390,4 +390,15 @@ public static class ImGuiAugGisDrawer
 			a_hexString = AugGisConfigUtils.Vec3ToHex(color).ToString("X") ;
 		}
 	}
+
+	public static unsafe void DrawPathBrowser(SDLWindow * a_window, OpenFileDialogHandle a_openFileDialogHandle)
+	{
+		ImGui.InputText("Path", ref a_openFileDialogHandle.pickedPath, 512);
+		ImGui.SameLine();
+
+		if (ImGui.Button("..."))
+		{
+			ShowOpenFileDialog(a_window, a_openFileDialogHandle);
+		}
+	}
 }
