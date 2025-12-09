@@ -116,14 +116,16 @@ internal class AugGISConfigToolGUIApp : Application
 				ImGui.OpenPopup(launchServerPopupKey);
 			}
 		}
-	
-		if (ImGui.BeginPopupModal(launchServerPopupKey, ImGuiWindowFlags.AlwaysAutoResize))
+
+		//passing the boolean ref here makes the popup have the close button on top right. Imgui will automatically close the popup if clicked
+		bool unused_open = true;
+		if (ImGui.BeginPopupModal(launchServerPopupKey, ref unused_open,ImGuiWindowFlags.AlwaysAutoResize))
 		{
 			ImGui.PushID(0);
-			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, serverBuildOpenFileDialogHandle);
+			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, serverBuildOpenFileDialogHandle, "Server Build");
 			ImGui.PopID();
 			ImGui.PushID(1);
-			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, configZipOpenFileDialogHandle);
+			ImGuiAugGisDrawer.DrawPathBrowser(sdlWindow, configZipOpenFileDialogHandle, "Config Zip");
 			ImGui.PopID();
 			bool enableButton = File.Exists(serverBuildOpenFileDialogHandle.pickedPath) &&
 			                      File.Exists(configZipOpenFileDialogHandle.pickedPath);

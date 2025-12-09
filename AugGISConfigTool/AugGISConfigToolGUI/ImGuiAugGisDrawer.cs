@@ -391,9 +391,9 @@ public static class ImGuiAugGisDrawer
 		}
 	}
 
-	public static unsafe void DrawPathBrowser(SDLWindow * a_window, OpenFileDialogHandle a_openFileDialogHandle)
+	public static unsafe void DrawPathBrowser(SDLWindow * a_window, OpenFileDialogHandle a_openFileDialogHandle, string a_label = "Path")
 	{
-		ImGui.InputText("Path", ref a_openFileDialogHandle.pickedPath, 512);
+		ImGui.InputText(a_label, ref a_openFileDialogHandle.pickedPath, 512);
 		ImGui.SameLine();
 
 		if (ImGui.Button("..."))
