@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text;
 using DotSpatial.Projections;
+using DotSpatial.Projections.Transforms;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
@@ -128,6 +129,12 @@ namespace AugGISDataParser
 		public static VectorLayerSetting ParseShapeFile(string a_shpFilePath)
 		{
 			Shapefile shapefile = Shapefile.OpenFile(a_shpFilePath);
+			
+			if (!AreProjectionsEquivalent(shapefile.Projection,ProjectionInfo.FromEpsgCode(ETRS89EsriCode),1e-6))
+			{
+				shapefile.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
+			}
+
 			VectorLayerSetting vectorLayerSetting = ParseFeatureSet(shapefile);
 			shapefile.Close();
 			return vectorLayerSetting;
@@ -268,7 +275,13 @@ namespace AugGISDataParser
 			rasterLayerSetting.rasterFilePath = a_rasterFilePath;
 			
 			IRaster rasterFile = Raster.Open(a_rasterFilePath);
+			ProjectionInfo etrsProjectionInfo = ProjectionInfo.FromEpsgCode(ETRS89EsriCode);
 			
+			if (!AreProjectionsEquivalent(rasterFile.Projection,etrsProjectionInfo,1e-6))
+			{
+				rasterFile.Reproject(etrsProjectionInfo);
+			}
+
 			rasterLayerSetting.name = rasterFile.Name;
 			rasterLayerSetting.extentsMin = new Vector2(rasterFile.Extent.MinX, rasterFile.Extent.MinY);
 			rasterLayerSetting.extentsMax = new Vector2(rasterFile.Extent.MaxX, rasterFile.Extent.MaxY);
@@ -311,6 +324,25 @@ namespace AugGISDataParser
 			settingsDataModel?.OnAfterLoad();
 			
 			return settingsDataModel;
+		}
+		
+		static bool AreProjectionsEquivalent(ProjectionInfo projA, ProjectionInfo projB, double tolerance)
+		{
+			double[] testCoordinates = { 0, 0, 10, 5, 30, 20};
+
+			double[] xyA = (double[])testCoordinates.Clone();
+			double[] xyB = (double[])testCoordinates.Clone();
+
+			projA.Transform.Forward(xyA,0,testCoordinates.Length / 2  );
+			projB.Transform.Forward(xyB,0,testCoordinates.Length / 2  );
+
+			for (int i = 0; i < xyA.Length; i++)
+			{
+				double distance = Math.Abs(xyA[i] - xyB[i]);
+				if (distance > tolerance)
+					return false;
+			}
+			return true;
 		}
 	}
 }
