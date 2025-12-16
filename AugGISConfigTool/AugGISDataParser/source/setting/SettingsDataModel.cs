@@ -57,6 +57,11 @@ namespace AugGISDataParser
 						}
 					}
 				}
+				
+				if (vectorLayerSetting.selectedTypeKey == string.Empty)
+				{
+					vectorLayerSetting.selectedTypeKey = vectorLayerSetting.attributeKeyToValues.Keys.ElementAt(0);
+				}
 			}
 			
 			

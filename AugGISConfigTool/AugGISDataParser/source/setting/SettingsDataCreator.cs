@@ -123,6 +123,7 @@ namespace AugGISDataParser
 			settingsDataModel.coordinate0 = coordinateMin;
 			settingsDataModel.coordinate1 = coordinateMax;
 
+			settingsDataModel.OnAfterLoad();
 			return settingsDataModel;
 		}
 
@@ -280,6 +281,7 @@ namespace AugGISDataParser
 			if (!AreProjectionsEquivalent(rasterFile.Projection,etrsProjectionInfo,1e-6))
 			{
 				rasterFile.Reproject(etrsProjectionInfo);
+				rasterFile.Projection = etrsProjectionInfo;
 			}
 
 			rasterLayerSetting.name = rasterFile.Name;
