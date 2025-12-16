@@ -4,11 +4,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text;
 using DotSpatial.Projections;
-using DotSpatial.Projections.Transforms;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
-using Feature = DotSpatial.Data.Feature;
 using IFeature = DotSpatial.Data.IFeature;
 
 namespace AugGISDataParser
