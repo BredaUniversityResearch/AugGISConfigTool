@@ -198,6 +198,15 @@ namespace AugGISDataParser
                     serializer.Serialize(writer, a_configObject);
                 }
             }
+
+            string zipPath = a_directoryPath + "/config.zip";
+
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            ZipFile.CreateFromDirectory(configRootDirectoryPath,zipPath);
         }
     }
 }
