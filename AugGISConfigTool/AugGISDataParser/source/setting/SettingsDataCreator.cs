@@ -184,13 +184,13 @@ namespace AugGISDataParser
 			if (lineFeatureSet.Features.Count > 0)
 			{
 				lineFeatureSet.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
-				pointFeatureSet.UpdateExtent();
+				lineFeatureSet.UpdateExtent();
 			}
 
 			if (polygonFeatureSet.Features.Count > 0)
 			{
 				polygonFeatureSet.Reproject(ProjectionInfo.FromEpsgCode(ETRS89EsriCode));
-				pointFeatureSet.UpdateExtent();
+				polygonFeatureSet.UpdateExtent();
 			}
 
 			GeoJsonFeatureSets geoJsonFeatureSets =
