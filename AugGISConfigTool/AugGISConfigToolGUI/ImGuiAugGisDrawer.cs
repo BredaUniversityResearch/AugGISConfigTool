@@ -369,12 +369,12 @@ public static class ImGuiAugGisDrawer
 		ImGui.InputText("Polygon Pattern Name", ref a_layerTypeData.polygonPatternName, (nuint)255);
 		
 		DrawColorInputFromHexString("Line Color", ref a_layerTypeData.lineColor);
-		ImGui.InputInt("Line Width", ref a_layerTypeData.lineWidth);
+		ImGui.InputFloat("Line Width", ref a_layerTypeData.lineWidth);
 		ImGui.InputText("Line Icon", ref a_layerTypeData.lineIcon, (nuint)255);
 		ImGui.InputText("Line Pattern Type", ref a_layerTypeData.linePatternType, (nuint)255);
 		
 		DrawColorInputFromHexString("Point Color", ref a_layerTypeData.pointColor);
-		ImGui.InputInt("Point Size", ref a_layerTypeData.pointSize);
+		ImGui.InputFloat("Point Size", ref a_layerTypeData.pointSize);
 		ImGui.InputText("Point Sprite Name", ref a_layerTypeData.pointSpriteName, (nuint)255);
 		
 		ImGui.InputText("Description", ref a_layerTypeData.description, (nuint)255);
