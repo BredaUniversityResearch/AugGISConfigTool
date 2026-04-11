@@ -20,6 +20,8 @@ namespace AugGISDataParser
 
 		public List<VectorLayerSetting> vectorLayerSettings = new List<VectorLayerSetting>();
 		public List<RasterLayerSetting> rasterLayerSettings = new List<RasterLayerSetting>();
+
+		public bool generateBasemap;
 		
 		public void OnAfterLoad()
 		{

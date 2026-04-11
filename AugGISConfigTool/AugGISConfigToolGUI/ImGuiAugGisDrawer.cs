@@ -69,7 +69,9 @@ public static class ImGuiAugGisDrawer
 		ImGui.InputDouble("Max Y", ref a_settingsDataModel.coordinate1.y);
 		ImGui.PopItemWidth();
 
-		if (ImGui.TreeNode("Vector Layer Settings"))
+        ImGui.Checkbox("Generate Basemap", ref a_settingsDataModel.generateBasemap);
+
+        if (ImGui.TreeNode("Vector Layer Settings"))
 		{
 			for (int i = 0; i < a_settingsDataModel.vectorLayerSettings.Count; i++)
 			{

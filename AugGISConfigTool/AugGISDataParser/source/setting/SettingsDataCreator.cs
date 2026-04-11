@@ -121,7 +121,9 @@ namespace AugGISDataParser
 			settingsDataModel.coordinate0 = coordinateMin;
 			settingsDataModel.coordinate1 = coordinateMax;
 
-			settingsDataModel.OnAfterLoad();
+			settingsDataModel.generateBasemap = false;
+
+            settingsDataModel.OnAfterLoad();
 			return settingsDataModel;
 		}
 
