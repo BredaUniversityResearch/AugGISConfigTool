@@ -1,7 +1,4 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO.Compression;
-using DotSpatial.Data;
+﻿using DotSpatial.Data;
 using DotSpatial.Projections;
 using NetTopologySuite.Geometries;
 using Newtonsoft.Json;
@@ -10,6 +7,11 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Processing;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO.Compression;
+using System.Net.NetworkInformation;
+using static System.Net.Mime.MediaTypeNames;
 using Image = SixLabors.ImageSharp.Image;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
@@ -17,6 +19,22 @@ namespace AugGISDataParser
 {
     public static class ConfigDataCreator
     {
+
+        public static async Task DownloadTerrestrisImage(string filePath, string bbox)
+        {
+            var url = $"https://ows.terrestris.de/osm/service"
+                + $"?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap"
+                + $"&LAYERS=OSM-WMS&STYLES=default&SRS=EPSG:3035"
+                + $"&BBOX={bbox}&WIDTH=2048&HEIGHT=2048"
+                + $"&FORMAT=image/png";
+
+            using var httpClient = new HttpClient();
+            var imageBytes = await httpClient.GetByteArrayAsync(url);
+
+            //TO DO, ADD PROPER ERROR HANDLING FOR HTTP REQUEST
+            await File.WriteAllBytesAsync(filePath, imageBytes);
+        }
+
         public static JsonConfigObject CreateConfigDataModelFromSettings(SettingsDataModel a_settingsDataModel)
         {
             JsonConfigObject jsonConfigObject = new JsonConfigObject();
@@ -94,6 +112,27 @@ namespace AugGISDataParser
                 jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
             }
 
+            //Create basemap raster layer if basemap generation is selected
+            if (a_settingsDataModel.generateBasemap == true)
+            {
+                ConfigRasterLayer configRasterLayer = new ConfigRasterLayer();
+                configRasterLayer.name = "Basemap_Generated";
+                configRasterLayer.@short = "Basemap"; //TODO handle @short name (maybe make it a setting)
+                
+                configRasterLayer.rasterScale = new RasterScale();
+                configRasterLayer.rasterLayerTypes = new List<LayerTypeData> {};
+                configRasterLayer.rasterMappings = new List<RasterMapping> {};
+                configRasterLayer.tags = new List<string> { "Raster" };
+                configRasterLayer.originalRasterFilePath = "terrestris";
+                configRasterLayer.coordinate0[0] = a_settingsDataModel.coordinate0.x;
+                configRasterLayer.coordinate0[1] = a_settingsDataModel.coordinate0.y;
+
+                configRasterLayer.coordinate1[0] = a_settingsDataModel.coordinate1.x;
+                configRasterLayer.coordinate1[1] = a_settingsDataModel.coordinate1.y;
+
+                jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
+            }
+
             return jsonConfigObject;
         }
 
@@ -114,80 +153,101 @@ namespace AugGISDataParser
 
             foreach (ConfigRasterLayer rasterLayerSetting in a_configObject.dataModel.rasterLayers)
             {
-                using (Image image = Image.Load(rasterLayerSetting.originalRasterFilePath))
+                if (rasterLayerSetting.originalRasterFilePath == "terrestris")
                 {
-                    double regionBottomLeftX = a_configObject.dataModel.coordinate0[0];
-                    double regionBottomLeftY = a_configObject.dataModel.coordinate0[1];
-                    
-                    double regionTopRightX = a_configObject.dataModel.coordinate1[0];
-                    double regionTopRightY = a_configObject.dataModel.coordinate1[1];
-                    
-                    double rasterInputBottomLeftX = rasterLayerSetting.coordinate0[0];
-                    double rasterInputBottomLeftY = rasterLayerSetting.coordinate0[1];
-                    
-                    double rasterInputTopRightX = rasterLayerSetting.coordinate1[0];
-                    double rasterInputTopRightY = rasterLayerSetting.coordinate1[1];
-                    
-                    int originalWidth = image.Width;
-                    int originalHeight = image.Height;
-
-                    double coordinateToPixelWidthFactor = originalWidth / (rasterInputTopRightX - rasterInputBottomLeftX);
-
-                    double coordinateToPixelHeightFactor = originalHeight / (rasterInputTopRightY - rasterInputBottomLeftY);
-
-                    double outputPixel0XRealNumber = (regionBottomLeftX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
-                    double outputPixel0YRealNumber = (regionBottomLeftY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
-
-                    double outputPixel1XRealNumber = (regionTopRightX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
-                    double outputPixel1YRealNumber = (regionTopRightY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
-
-                    int outputPixel0X = (int) outputPixel0XRealNumber;
-                    int outputPixel0Y = (int) outputPixel0YRealNumber;
-
-                    int outputPixel1X = (int) Math.Ceiling(outputPixel1XRealNumber);
-                    int outputPixel1Y = (int) Math.Ceiling(outputPixel1YRealNumber);
-
-                    int regionWidth = outputPixel1X - outputPixel0X;
-                    int regionHeight = outputPixel1Y - outputPixel0Y;
-
-                    if (regionWidth <= 0 || regionHeight <= 0)
+                    //TO DO, ADD PROPER PING CHECK TO TERRESTRIS SERVER INSTEAD OF THIS HARDCODED VALUE
+                    bool ping = true;
+                    if (!ping)
                     {
-                        throw new Exception("Invalid region size!");
+                        throw new Exception("Cannot reach terrestris server to generate basemap!");
                     }
-                    
-                    regionWidth = Math.Clamp(regionWidth, 0, originalWidth);
-                    regionHeight = Math.Clamp(regionHeight,0, originalHeight);
-                    
-                    double pixelToCoordinateWidthFactor = (rasterInputTopRightX - rasterInputBottomLeftX) / originalWidth;
-                    double pixelToCoordinateHeightFactor = (rasterInputTopRightY - rasterInputBottomLeftY) / originalHeight;
 
-                    rasterLayerSetting.coordinate0[0] = regionBottomLeftX -
-                                                        (outputPixel0XRealNumber - outputPixel0X) *
-                                                        pixelToCoordinateWidthFactor;
-                    rasterLayerSetting.coordinate0[1] = regionBottomLeftY -
-                                                        (outputPixel0YRealNumber - outputPixel0Y) *
-                                                        pixelToCoordinateHeightFactor;
-                    
-                    rasterLayerSetting.coordinate1[0] = regionTopRightX -
-                                                        (outputPixel1X - outputPixel1XRealNumber) *
-                                                        pixelToCoordinateWidthFactor;
-                    
-                    rasterLayerSetting.coordinate1[1] = regionTopRightY -
-                                                        (outputPixel1Y - outputPixel1YRealNumber) *
-                                                        pixelToCoordinateHeightFactor;
-                    
-                    // finally convert to pixel coordinates.
-                    outputPixel0Y = originalHeight - regionHeight - outputPixel0Y;
-
-                    // clamp by image input size
-                    outputPixel0X = Math.Max(0, Math.Min(originalWidth, outputPixel0X));
-                    outputPixel0Y =  Math.Max(0,  Math.Min(originalHeight, outputPixel0Y));
-
-                    Rectangle cutRect = new Rectangle(outputPixel0X, outputPixel0Y, regionWidth, regionHeight);
-                    image.Mutate(a_context => a_context.Crop(cutRect));
+                    string bbox = (((int)a_configObject.dataModel.coordinate0[0]) + ","
+                       + (int)a_configObject.dataModel.coordinate0[1] + ","
+                       + (int)a_configObject.dataModel.coordinate1[0] + ","
+                       + (int)a_configObject.dataModel.coordinate1[1]);
 
                     rasterLayerSetting.rasterFilePath = rasterDirectoryPath + $"raster{rasterLayerSetting.name}.png";
-                    image.SaveAsPng(rasterLayerSetting.rasterFilePath);
+
+                    DownloadTerrestrisImage(rasterLayerSetting.rasterFilePath, bbox).Wait();
+                }
+                else
+                {
+                    using (Image image = Image.Load(rasterLayerSetting.originalRasterFilePath))
+                    {
+                        double regionBottomLeftX = a_configObject.dataModel.coordinate0[0];
+                        double regionBottomLeftY = a_configObject.dataModel.coordinate0[1];
+
+                        double regionTopRightX = a_configObject.dataModel.coordinate1[0];
+                        double regionTopRightY = a_configObject.dataModel.coordinate1[1];
+
+                        double rasterInputBottomLeftX = rasterLayerSetting.coordinate0[0];
+                        double rasterInputBottomLeftY = rasterLayerSetting.coordinate0[1];
+
+                        double rasterInputTopRightX = rasterLayerSetting.coordinate1[0];
+                        double rasterInputTopRightY = rasterLayerSetting.coordinate1[1];
+
+                        int originalWidth = image.Width;
+                        int originalHeight = image.Height;
+
+                        double coordinateToPixelWidthFactor = originalWidth / (rasterInputTopRightX - rasterInputBottomLeftX);
+
+                        double coordinateToPixelHeightFactor = originalHeight / (rasterInputTopRightY - rasterInputBottomLeftY);
+
+                        double outputPixel0XRealNumber = (regionBottomLeftX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
+                        double outputPixel0YRealNumber = (regionBottomLeftY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
+
+                        double outputPixel1XRealNumber = (regionTopRightX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
+                        double outputPixel1YRealNumber = (regionTopRightY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
+
+                        int outputPixel0X = (int)outputPixel0XRealNumber;
+                        int outputPixel0Y = (int)outputPixel0YRealNumber;
+
+                        int outputPixel1X = (int)Math.Ceiling(outputPixel1XRealNumber);
+                        int outputPixel1Y = (int)Math.Ceiling(outputPixel1YRealNumber);
+
+                        int regionWidth = outputPixel1X - outputPixel0X;
+                        int regionHeight = outputPixel1Y - outputPixel0Y;
+
+                        if (regionWidth <= 0 || regionHeight <= 0)
+                        {
+                            throw new Exception("Invalid region size!");
+                        }
+
+                        regionWidth = Math.Clamp(regionWidth, 0, originalWidth);
+                        regionHeight = Math.Clamp(regionHeight, 0, originalHeight);
+
+                        double pixelToCoordinateWidthFactor = (rasterInputTopRightX - rasterInputBottomLeftX) / originalWidth;
+                        double pixelToCoordinateHeightFactor = (rasterInputTopRightY - rasterInputBottomLeftY) / originalHeight;
+
+                        rasterLayerSetting.coordinate0[0] = regionBottomLeftX -
+                                                            (outputPixel0XRealNumber - outputPixel0X) *
+                                                            pixelToCoordinateWidthFactor;
+                        rasterLayerSetting.coordinate0[1] = regionBottomLeftY -
+                                                            (outputPixel0YRealNumber - outputPixel0Y) *
+                                                            pixelToCoordinateHeightFactor;
+
+                        rasterLayerSetting.coordinate1[0] = regionTopRightX -
+                                                            (outputPixel1X - outputPixel1XRealNumber) *
+                                                            pixelToCoordinateWidthFactor;
+
+                        rasterLayerSetting.coordinate1[1] = regionTopRightY -
+                                                            (outputPixel1Y - outputPixel1YRealNumber) *
+                                                            pixelToCoordinateHeightFactor;
+
+                        // finally convert to pixel coordinates.
+                        outputPixel0Y = originalHeight - regionHeight - outputPixel0Y;
+
+                        // clamp by image input size
+                        outputPixel0X = Math.Max(0, Math.Min(originalWidth, outputPixel0X));
+                        outputPixel0Y = Math.Max(0, Math.Min(originalHeight, outputPixel0Y));
+
+                        Rectangle cutRect = new Rectangle(outputPixel0X, outputPixel0Y, regionWidth, regionHeight);
+                        image.Mutate(a_context => a_context.Crop(cutRect));
+
+                        rasterLayerSetting.rasterFilePath = rasterDirectoryPath + $"raster{rasterLayerSetting.name}.png";
+                        image.SaveAsPng(rasterLayerSetting.rasterFilePath);
+                    }
                 }
             }
 
