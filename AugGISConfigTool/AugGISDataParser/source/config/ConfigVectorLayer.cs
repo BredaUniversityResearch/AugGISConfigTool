@@ -13,12 +13,16 @@ namespace AugGISDataParser
 			[JsonProperty("types")] 
 			public List<int> typeIndices;
 
-			public LayerData()
+            [JsonProperty("meta")]
+            public Dictionary<string,string> metaIndices;
+
+            public LayerData()
 			{
 				points = null;
 				gaps = null;
 				typeIndices = new List<int>();
-			}
+				metaIndices = new Dictionary<string, string>();
+            }
 		}
 		
 		public string name;

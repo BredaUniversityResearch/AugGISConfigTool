@@ -88,6 +88,14 @@ namespace AugGISDataParser
                     object? value = shapeFeature.DataRow[attributeIndex];
 
                     configLayerData.typeIndices.Add(attributes.IndexOf(value));
+
+                    foreach (string metaKey in vectorLayerSetting.attributeKeyToValues.Keys)
+                    {
+                        int metaAttributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(metaKey);
+                        object? metaValue = shapeFeature.DataRow[metaAttributeIndex];
+                        configLayerData.metaIndices.Add(metaKey, metaValue?.ToString() ?? "");
+                    }
+
                     configVectorLayer.layerData.Add(configLayerData);
                 }
             }
