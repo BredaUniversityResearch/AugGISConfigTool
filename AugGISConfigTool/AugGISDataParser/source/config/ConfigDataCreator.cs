@@ -7,8 +7,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Processing;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO.Compression;
 using System.Net.NetworkInformation;
 using static System.Net.Mime.MediaTypeNames;

@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-using System.Globalization;
-using System.Numerics;
+﻿using System.Numerics;
 using AugGISDataParser;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;

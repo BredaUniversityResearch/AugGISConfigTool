@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -23,8 +23,17 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e" />
+  <ItemGroup>
+    <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
+  </ItemGroup>
+
+  <Target Name="CopyGdalNatives" AfterTargets="Build">
+    <ItemGroup>
+      <GdalNatives Include="$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(GdalNatives)"
+          DestinationFiles="@(GdalNatives->'$(TargetDir)gdal\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
