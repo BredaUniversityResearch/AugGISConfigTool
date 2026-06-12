@@ -389,9 +389,9 @@ public static class ImGuiAugGisDrawer
 		
 		if (ImGui.ColorEdit3(a_label, ref color))
 		{
-			a_hexString = AugGisConfigUtils.Vec3ToHex(color).ToString("X") ;
-		}
-	}
+            a_hexString = "#" + AugGisConfigUtils.Vec3ToHex(color).ToString("X6");
+        }
+    }
 
 	public static unsafe void DrawPathBrowser(SDLWindow * a_window, OpenFileDialogHandle a_openFileDialogHandle, string a_label = "Path")
 	{
