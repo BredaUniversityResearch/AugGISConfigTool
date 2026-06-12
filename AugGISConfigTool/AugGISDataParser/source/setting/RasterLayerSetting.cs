@@ -1,5 +1,4 @@
-﻿using DotSpatial.Data;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace AugGISDataParser;
 

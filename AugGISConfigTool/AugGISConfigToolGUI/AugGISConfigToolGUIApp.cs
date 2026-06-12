@@ -1,8 +1,5 @@
 using System.Text;
 using AugGISDataParser;
-using DotSpatial.Data;
-using DotSpatial.Data.Properties;
-using DotSpatial.Symbology;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
 using Hexa.NET.Utilities;

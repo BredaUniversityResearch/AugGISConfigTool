@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -16,23 +16,6 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-rc.2.25502.107" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="DotSpatial.Data.Rasters.GdalExtension">
-      <HintPath>..\Extensions\DotSpatial.Data.Rasters.GdalExtension\DotSpatial.Data.Rasters.GdalExtension.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
-  </ItemGroup>
-
-  <Target Name="CopyGdalNatives" AfterTargets="Build">
-    <ItemGroup>
-      <GdalNatives Include="$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\**\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(GdalNatives)"
-          DestinationFiles="@(GdalNatives->'$(TargetDir)gdal\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
+  <!-- REMOVED: the DotSpatial GdalExtension <Reference> and the xcopy PostBuild target. -->
 
 </Project>
