@@ -27,7 +27,7 @@
 
   <!-- Cross-platform replacement for the old `xcopy assets` PostBuild step -->
   <ItemGroup>
-    <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
+    <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
   </ItemGroup>
 
   <!-- REMOVED: the DotSpatial GdalExtension <Reference> and both xcopy PostBuild targets. -->

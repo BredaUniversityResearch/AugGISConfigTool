@@ -3,6 +3,7 @@ using AugGISDataParser;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
 using Hexa.NET.Utilities;
+using System.Runtime.InteropServices;
 
 namespace AugGISConfigToolGUI;
 
@@ -14,6 +15,20 @@ public class OpenFileDialogHandle
 
 public static class ImGuiAugGisDrawer
 {
+
+		// Persistent JSON filter for the dialogs — allocated once and kept for the app's lifetime
+// so it stays valid for SDL's asynchronous callback.
+private static readonly unsafe SDLDialogFileFilter* s_jsonFilter = CreateJsonFilter();
+public static unsafe SDLDialogFileFilter* JsonFilter => s_jsonFilter;
+
+private static unsafe SDLDialogFileFilter* CreateJsonFilter()
+{
+    SDLDialogFileFilter* f = (SDLDialogFileFilter*)NativeMemory.Alloc((nuint)sizeof(SDLDialogFileFilter));
+    f->Name = (byte*)Marshal.StringToCoTaskMemUTF8("JSON files (*.json)");
+    f->Pattern = (byte*)Marshal.StringToCoTaskMemUTF8("json");
+    return f;
+}
+
 	public static void ShowErrorPopupModal(string a_message, string a_option, Action a_onClose)
 	{
 		string error = "Error";
@@ -44,14 +59,30 @@ public static class ImGuiAugGisDrawer
 		}), null, a_window, "", false);
 	}
 	
-	public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
-	{
-		SDL.ShowOpenFileDialog((a_userdata, a_fileList, a_filter) =>
-		{
-			a_handle.hasFinished = true;
-			a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
-		},null, a_window, null, 0,"", false );
-	}
+public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
+    => ShowOpenFileDialog(a_window, a_handle, null, 0);
+
+public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
+    SDLDialogFileFilter* a_filters, int a_filterCount)
+{
+    SDL.ShowOpenFileDialog((a_userdata, a_fileList, a_filter) =>
+    {
+        if (a_fileList == null || a_fileList[0] == null) return; // cancelled or error
+        a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
+        a_handle.hasFinished = true;
+    }, null, a_window, a_filters, a_filterCount, "", false);
+}
+
+public static unsafe void ShowSaveFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
+    SDLDialogFileFilter* a_filters, int a_filterCount)
+{
+    SDL.ShowSaveFileDialog((a_userdata, a_fileList, a_filter) =>
+    {
+        if (a_fileList == null || a_fileList[0] == null) return; // cancelled or error
+        a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
+        a_handle.hasFinished = true;
+    }, null, a_window, a_filters, a_filterCount, "");
+}
 	
 	public static void DrawSettingsDataModel(SettingsDataModel a_settingsDataModel)
 	{
@@ -401,4 +432,6 @@ public static class ImGuiAugGisDrawer
 			ShowOpenFileDialog(a_window, a_openFileDialogHandle);
 		}
 	}
+
+
 }

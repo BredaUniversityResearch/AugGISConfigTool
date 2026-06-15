@@ -36,7 +36,8 @@ internal class AugGISConfigToolGUIApp : Application
 		unsafe
 		{
 			ImGuiIOPtr io = ImGui.GetIO();
-			io.Fonts.AddFontFromFileTTF("assets/fonts/Roboto-Regular.ttf", 18);
+			io.Fonts.AddFontFromFileTTF(System.IO.Path.Combine(AppContext.BaseDirectory, "assets/fonts/Roboto-Regular.ttf"), 18);
+			
 		}
 	}
 
@@ -62,10 +63,10 @@ internal class AugGISConfigToolGUIApp : Application
 
 					ImGuiAugGisDrawer.DrawSettingsDataModel(loadedSettingsDataModel);
 
-					if (ImGui.Button("Save Settings"))
-					{
-						ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, saveSettingsFileHandle);
-					}
+if (ImGui.Button("Save Settings"))
+{
+    ImGuiAugGisDrawer.ShowSaveFileDialog(sdlWindow, saveSettingsFileHandle, ImGuiAugGisDrawer.JsonFilter, 1);
+}
 
 					if (ImGui.Button("Export to config file"))
 					{
@@ -100,8 +101,7 @@ internal class AugGISConfigToolGUIApp : Application
 
 			if (ImGui.MenuItem("Open Settings File"))
 			{
-				ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, openSettingsFileHandle);
-			}
+ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, openSettingsFileHandle, ImGuiAugGisDrawer.JsonFilter, 1);			}
 
 			ImGui.EndMenu();
 		}
@@ -192,20 +192,26 @@ internal class AugGISConfigToolGUIApp : Application
 			}
 		}
 
-		if (saveSettingsFileHandle.hasFinished)
-		{
-			try
-			{
-				SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel,
-					saveSettingsFileHandle.pickedPath);
-				saveSettingsFileHandle.hasFinished = false;
-			}
-			catch (Exception e)
-			{
-				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings Path", "Ok",
-					() => saveSettingsFileHandle.hasFinished = false);
-			}
-		}
+if (saveSettingsFileHandle.hasFinished)
+{
+    try
+    {
+        string savePath = saveSettingsFileHandle.pickedPath ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(savePath) &&
+            !savePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            savePath += ".json";
+        }
+
+        SettingsDataCreator.SaveSettingsDataModelToFile(loadedSettingsDataModel, savePath);
+        saveSettingsFileHandle.hasFinished = false;
+    }
+    catch (Exception e)
+    {
+        Console.Write("Error: {0} ", e.ToString());
+        ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid Settings Path", "Ok",
+            () => saveSettingsFileHandle.hasFinished = false);
+    }
+}
 	}
 }
