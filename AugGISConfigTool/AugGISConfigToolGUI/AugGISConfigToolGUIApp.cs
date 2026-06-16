@@ -154,7 +154,7 @@ ImGuiAugGisDrawer.ShowOpenFileDialog(sdlWindow, openSettingsFileHandle, ImGuiAug
 			catch (Exception e)
 			{
 				Console.Write("Error: {0} ", e.ToString());
-				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid GIS Folder", "Ok",
+				ImGuiAugGisDrawer.ShowErrorPopupModal("Invalid GIS Data", "Ok",
 					() => openGisFolderHandle.hasFinished = false);
 			}
 		}

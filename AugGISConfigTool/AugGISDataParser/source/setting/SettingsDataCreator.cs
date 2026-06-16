@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
@@ -137,7 +138,16 @@ namespace AugGISDataParser
             GdalSetup.EnsureConfigured();
 
             string jsonString = File.ReadAllText(a_geoJsonPath);
-            FeatureCollection featureCollection = JsonReader.Read<FeatureCollection>(jsonString);
+            FeatureCollection featureCollection = new FeatureCollection();                        
+
+            try
+            {
+                featureCollection = JsonReader.Read<FeatureCollection>(jsonString);            
+            }
+            catch (System.Exception)
+            {                
+                Console.WriteLine("[warning] Unsupported Json file, missing featurecollection: "+a_geoJsonPath);
+            }
 
             CoordinateTransformation transform = BuildTransform(Wgs84Epsg);
 
