@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- These Hexa.NET packages ship native SDL3/OpenGL binaries for Windows, Linux and macOS. -->
     <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
     <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18" />
     <PackageReference Include="Hexa.NET.ImGui.Backends.SDL3" Version="1.0.18" />
@@ -24,14 +25,11 @@
     <ProjectReference Include="..\AugGISServerLauncher\AugGISServerLauncher.csproj" />
   </ItemGroup>
 
+  <!-- Cross-platform replacement for the old `xcopy assets` PostBuild step -->
   <ItemGroup>
-    <Reference Include="DotSpatial.Data.Rasters.GdalExtension">
-      <HintPath>..\Extensions\DotSpatial.Data.Rasters.GdalExtension\DotSpatial.Data.Rasters.GdalExtension.dll</HintPath>
-    </Reference>
+    <None Include="assets/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e&#xA;xcopy &quot;$(ProjectDir)assets&quot; &quot;$(TargetDir)assets&quot; /y /i /e" />
-  </Target>
+  <!-- REMOVED: the DotSpatial GdalExtension <Reference> and both xcopy PostBuild targets. -->
 
 </Project>

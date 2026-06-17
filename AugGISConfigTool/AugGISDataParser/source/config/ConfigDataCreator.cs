@@ -1,17 +1,8 @@
-﻿using DotSpatial.Data;
-using DotSpatial.Projections;
-using NetTopologySuite.Geometries;
+using System.IO.Compression;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Processing;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO.Compression;
-using System.Net.NetworkInformation;
-using static System.Net.Mime.MediaTypeNames;
 using Image = SixLabors.ImageSharp.Image;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 
@@ -19,7 +10,6 @@ namespace AugGISDataParser
 {
     public static class ConfigDataCreator
     {
-
         public static async Task DownloadTerrestrisImage(string filePath, string bbox)
         {
             var url = $"https://ows.terrestris.de/osm/service"
@@ -30,8 +20,6 @@ namespace AugGISDataParser
 
             using var httpClient = new HttpClient();
             var imageBytes = await httpClient.GetByteArrayAsync(url);
-
-            //TO DO, ADD PROPER ERROR HANDLING FOR HTTP REQUEST
             await File.WriteAllBytesAsync(filePath, imageBytes);
         }
 
@@ -46,9 +34,9 @@ namespace AugGISDataParser
 
             foreach (VectorLayerSetting vectorLayerSetting in a_settingsDataModel.vectorLayerSettings)
             {
-                if (vectorLayerSetting.featureSet == null)
+                if (vectorLayerSetting.features == null)
                 {
-                    Console.WriteLine("Error: Vector Layer Settings shape file is Null!");
+                    Console.WriteLine("Error: Vector Layer Settings features are Null!");
                     continue;
                 }
 
@@ -64,35 +52,29 @@ namespace AugGISDataParser
                     configVectorLayer.tags.Add(tag);
                 }
 
-                foreach (IFeature shapeFeature in vectorLayerSetting.featureSet.Features)
+                List<object?> typeValues = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.selectedTypeKey];
+
+                foreach (VectorFeature feature in vectorLayerSetting.features)
                 {
                     ConfigVectorLayer.LayerData configLayerData = new ConfigVectorLayer.LayerData
                     {
-                        points = new double[shapeFeature.Geometry.Coordinates.Length, 2]
+                        points = new double[feature.coordinates.Length, 2]
                     };
 
-                    for (int coordinateIndex = 0;
-                         coordinateIndex < shapeFeature.Geometry.Coordinates.Length;
-                         coordinateIndex++)
+                    for (int coordinateIndex = 0; coordinateIndex < feature.coordinates.Length; coordinateIndex++)
                     {
-                        var coordinate = shapeFeature.Geometry.Coordinates[coordinateIndex];
-                        configLayerData.points[coordinateIndex, 0] = coordinate.X;
-                        configLayerData.points[coordinateIndex, 1] = coordinate.Y;
+                        configLayerData.points[coordinateIndex, 0] = feature.coordinates[coordinateIndex][0];
+                        configLayerData.points[coordinateIndex, 1] = feature.coordinates[coordinateIndex][1];
                     }
 
-                    configLayerData.gaps = new double[0, 0]; //TODO handle gaps
+                    configLayerData.gaps = new double[0, 0]; // TODO handle gaps
 
-                    List<object?> attributes = vectorLayerSetting.attributeKeyToValues[vectorLayerSetting.selectedTypeKey];
-
-                    int attributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(vectorLayerSetting.selectedTypeKey);
-                    object? value = shapeFeature.DataRow[attributeIndex];
-
-                    configLayerData.typeIndices.Add(attributes.IndexOf(value));
+                    feature.attributes.TryGetValue(vectorLayerSetting.selectedTypeKey, out object? value);
+                    configLayerData.typeIndices.Add(typeValues.IndexOf(value));
 
                     foreach (string metaKey in vectorLayerSetting.attributeKeyToValues.Keys)
                     {
-                        int metaAttributeIndex = shapeFeature.DataRow.Table.Columns.IndexOf(metaKey);
-                        object? metaValue = shapeFeature.DataRow[metaAttributeIndex];
+                        feature.attributes.TryGetValue(metaKey, out object? metaValue);
                         configLayerData.metaIndices.Add(metaKey, metaValue?.ToString() ?? "");
                     }
 
@@ -104,7 +86,7 @@ namespace AugGISDataParser
             {
                 ConfigRasterLayer configRasterLayer = new ConfigRasterLayer();
                 configRasterLayer.name = rasterLayerSetting.name;
-                configRasterLayer.@short = rasterLayerSetting.name; //TODO handle @short name (maybe make it a setting)
+                configRasterLayer.@short = rasterLayerSetting.name;
 
                 configRasterLayer.rasterScale = rasterLayerSetting.rasterScale;
                 configRasterLayer.rasterLayerTypes = rasterLayerSetting.rasterLayerTypes;
@@ -113,28 +95,26 @@ namespace AugGISDataParser
                 configRasterLayer.originalRasterFilePath = rasterLayerSetting.rasterFilePath;
                 configRasterLayer.coordinate0[0] = rasterLayerSetting.extentsMin.x;
                 configRasterLayer.coordinate0[1] = rasterLayerSetting.extentsMin.y;
-
                 configRasterLayer.coordinate1[0] = rasterLayerSetting.extentsMax.x;
                 configRasterLayer.coordinate1[1] = rasterLayerSetting.extentsMax.y;
 
                 jsonConfigObject.dataModel.rasterLayers.Add(configRasterLayer);
             }
 
-            //Create basemap raster layer if basemap generation is selected
-            if (a_settingsDataModel.generateBasemap == true)
+            // Create basemap raster layer if basemap generation is selected
+            if (a_settingsDataModel.generateBasemap)
             {
                 ConfigRasterLayer configRasterLayer = new ConfigRasterLayer();
                 configRasterLayer.name = "Basemap_Generated";
-                configRasterLayer.@short = "Basemap"; //TODO handle @short name (maybe make it a setting)
-                
+                configRasterLayer.@short = "Basemap";
+
                 configRasterLayer.rasterScale = new RasterScale();
-                configRasterLayer.rasterLayerTypes = new List<LayerTypeData> {};
-                configRasterLayer.rasterMappings = new List<RasterMapping> {};
+                configRasterLayer.rasterLayerTypes = new List<LayerTypeData> { };
+                configRasterLayer.rasterMappings = new List<RasterMapping> { };
                 configRasterLayer.tags = new List<string> { "Raster" };
                 configRasterLayer.originalRasterFilePath = "terrestris";
                 configRasterLayer.coordinate0[0] = a_settingsDataModel.coordinate0.x;
                 configRasterLayer.coordinate0[1] = a_settingsDataModel.coordinate0.y;
-
                 configRasterLayer.coordinate1[0] = a_settingsDataModel.coordinate1.x;
                 configRasterLayer.coordinate1[1] = a_settingsDataModel.coordinate1.y;
 
@@ -163,7 +143,7 @@ namespace AugGISDataParser
             {
                 if (rasterLayerSetting.originalRasterFilePath == "terrestris")
                 {
-                    //TO DO, ADD PROPER PING CHECK TO TERRESTRIS SERVER INSTEAD OF THIS HARDCODED VALUE
+                    // TODO: add a proper ping check to the terrestris server
                     bool ping = true;
                     if (!ping)
                     {
@@ -185,13 +165,11 @@ namespace AugGISDataParser
                     {
                         double regionBottomLeftX = a_configObject.dataModel.coordinate0[0];
                         double regionBottomLeftY = a_configObject.dataModel.coordinate0[1];
-
                         double regionTopRightX = a_configObject.dataModel.coordinate1[0];
                         double regionTopRightY = a_configObject.dataModel.coordinate1[1];
 
                         double rasterInputBottomLeftX = rasterLayerSetting.coordinate0[0];
                         double rasterInputBottomLeftY = rasterLayerSetting.coordinate0[1];
-
                         double rasterInputTopRightX = rasterLayerSetting.coordinate1[0];
                         double rasterInputTopRightY = rasterLayerSetting.coordinate1[1];
 
@@ -199,18 +177,15 @@ namespace AugGISDataParser
                         int originalHeight = image.Height;
 
                         double coordinateToPixelWidthFactor = originalWidth / (rasterInputTopRightX - rasterInputBottomLeftX);
-
                         double coordinateToPixelHeightFactor = originalHeight / (rasterInputTopRightY - rasterInputBottomLeftY);
 
                         double outputPixel0XRealNumber = (regionBottomLeftX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
                         double outputPixel0YRealNumber = (regionBottomLeftY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
-
                         double outputPixel1XRealNumber = (regionTopRightX - rasterInputBottomLeftX) * coordinateToPixelWidthFactor;
                         double outputPixel1YRealNumber = (regionTopRightY - rasterInputBottomLeftY) * coordinateToPixelHeightFactor;
 
                         int outputPixel0X = (int)outputPixel0XRealNumber;
                         int outputPixel0Y = (int)outputPixel0YRealNumber;
-
                         int outputPixel1X = (int)Math.Ceiling(outputPixel1XRealNumber);
                         int outputPixel1Y = (int)Math.Ceiling(outputPixel1YRealNumber);
 
@@ -228,25 +203,14 @@ namespace AugGISDataParser
                         double pixelToCoordinateWidthFactor = (rasterInputTopRightX - rasterInputBottomLeftX) / originalWidth;
                         double pixelToCoordinateHeightFactor = (rasterInputTopRightY - rasterInputBottomLeftY) / originalHeight;
 
-                        rasterLayerSetting.coordinate0[0] = regionBottomLeftX -
-                                                            (outputPixel0XRealNumber - outputPixel0X) *
-                                                            pixelToCoordinateWidthFactor;
-                        rasterLayerSetting.coordinate0[1] = regionBottomLeftY -
-                                                            (outputPixel0YRealNumber - outputPixel0Y) *
-                                                            pixelToCoordinateHeightFactor;
+                        rasterLayerSetting.coordinate0[0] = regionBottomLeftX - (outputPixel0XRealNumber - outputPixel0X) * pixelToCoordinateWidthFactor;
+                        rasterLayerSetting.coordinate0[1] = regionBottomLeftY - (outputPixel0YRealNumber - outputPixel0Y) * pixelToCoordinateHeightFactor;
+                        rasterLayerSetting.coordinate1[0] = regionTopRightX - (outputPixel1X - outputPixel1XRealNumber) * pixelToCoordinateWidthFactor;
+                        rasterLayerSetting.coordinate1[1] = regionTopRightY - (outputPixel1Y - outputPixel1YRealNumber) * pixelToCoordinateHeightFactor;
 
-                        rasterLayerSetting.coordinate1[0] = regionTopRightX -
-                                                            (outputPixel1X - outputPixel1XRealNumber) *
-                                                            pixelToCoordinateWidthFactor;
-
-                        rasterLayerSetting.coordinate1[1] = regionTopRightY -
-                                                            (outputPixel1Y - outputPixel1YRealNumber) *
-                                                            pixelToCoordinateHeightFactor;
-
-                        // finally convert to pixel coordinates.
+                        // convert to pixel coordinates
                         outputPixel0Y = originalHeight - regionHeight - outputPixel0Y;
 
-                        // clamp by image input size
                         outputPixel0X = Math.Max(0, Math.Min(originalWidth, outputPixel0X));
                         outputPixel0Y = Math.Max(0, Math.Min(originalHeight, outputPixel0Y));
 
@@ -260,21 +224,18 @@ namespace AugGISDataParser
             }
 
             using (StreamWriter sw = new StreamWriter(configRootDirectoryPath + "config.json"))
+            using (JsonWriter writer = new JsonTextWriter(sw))
             {
-                using (JsonWriter writer = new JsonTextWriter(sw))
-                {
-                    serializer.Serialize(writer, a_configObject);
-                }
+                serializer.Serialize(writer, a_configObject);
             }
 
             string zipPath = a_directoryPath + "/config.zip";
-
             if (File.Exists(zipPath))
             {
                 File.Delete(zipPath);
             }
 
-            ZipFile.CreateFromDirectory(configRootDirectoryPath,zipPath);
+            ZipFile.CreateFromDirectory(configRootDirectoryPath, zipPath);
         }
     }
 }

@@ -1,17 +1,19 @@
-﻿using DotSpatial.Data;
-
 namespace AugGISDataParser;
 
+/// <summary>
+/// GeoJSON geometries split by type, after reprojection to EPSG:3035.
+/// (Was DotSpatial FeatureSets; now library-agnostic VectorFeature lists.)
+/// </summary>
 public struct GeoJsonFeatureSets
 {
-	public FeatureSet? pointFeatureSet = null;
-	public FeatureSet? lineFeatureSet = null;
-	public FeatureSet? polygonFeatureSet = null;
+    public List<VectorFeature>? pointFeatures;
+    public List<VectorFeature>? lineFeatures;
+    public List<VectorFeature>? polygonFeatures;
 
-	public GeoJsonFeatureSets(FeatureSet a_pointSet, FeatureSet a_lineSet, FeatureSet a_polygonSet)
-	{
-		pointFeatureSet = a_pointSet;
-		lineFeatureSet = a_lineSet;
-		polygonFeatureSet = a_polygonSet;
-	}
+    public GeoJsonFeatureSets(List<VectorFeature> a_points, List<VectorFeature> a_lines, List<VectorFeature> a_polygons)
+    {
+        pointFeatures = a_points;
+        lineFeatures = a_lines;
+        polygonFeatures = a_polygons;
+    }
 }

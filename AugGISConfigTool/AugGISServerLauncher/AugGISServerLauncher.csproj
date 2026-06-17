@@ -1,9 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
+  </ItemGroup>
+  
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <TargetFrameworks>net6.0;net6.0-windows</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
 </Project>

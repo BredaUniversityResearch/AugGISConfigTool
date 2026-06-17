@@ -1,30 +1,29 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotSpatial.Data" Version="4.0.656" />
-    <PackageReference Include="DotSpatial.Projections" Version="4.0.656" />
-    <PackageReference Include="DotSpatial.Serialization" Version="4.0.656" />
-    <PackageReference Include="DotSpatial.Symbology" Version="4.0.656" />
+    <!-- Vector reading: fully managed, cross-platform -->
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NetTopologySuite.IO.Esri.Shapefile" Version="1.0.0" />
+
+    <!-- Raster (GeoTIFF) + ALL coordinate reprojection: GDAL/PROJ with bundled native runtimes.
+         Keep all three MaxRev packages on the SAME version. Use the latest on NuGet. -->
+    <PackageReference Include="MaxRev.Gdal.Core" Version="3.13.0.527" />
+    <PackageReference Include="MaxRev.Gdal.LinuxRuntime.Minimal" Version="3.13.0.527" />
+    <PackageReference Include="MaxRev.Gdal.WindowsRuntime.Minimal" Version="3.13.0.527" />
+
+    <!-- Raster crop + JSON: already cross-platform -->
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="DotSpatial.Data.Rasters.GdalExtension">
-      <HintPath>..\Extensions\DotSpatial.Data.Rasters.GdalExtension\DotSpatial.Data.Rasters.GdalExtension.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(SolutionDir)Extensions\DotSpatial.Data.Rasters.GdalExtension\gdal\*.*&quot; &quot;$(TargetDir)gdal\&quot; /y /s /e" />
-  </Target>
+  <!-- REMOVED: all DotSpatial.* packages, the DotSpatial.Data.Rasters.GdalExtension <Reference>,
+       and the xcopy PostBuild target. The Extensions/ folder of Windows GDAL DLLs is no longer used. -->
 
 </Project>

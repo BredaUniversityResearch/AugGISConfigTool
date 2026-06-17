@@ -1,5 +1,4 @@
-﻿using DotSpatial.Symbology;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace AugGISDataParser
 {
