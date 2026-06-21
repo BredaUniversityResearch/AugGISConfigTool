@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using AugGISDataParser;
 using Hexa.NET.ImGui;
 using Hexa.NET.SDL3;
 using Hexa.NET.Utilities;
-using System.Runtime.InteropServices;
 
 namespace AugGISConfigToolGUI;
 
@@ -11,45 +11,50 @@ public class OpenFileDialogHandle
 {
     public bool hasFinished = false;
     public string? pickedPath = string.Empty;
-    public SDLDialogFileCallback? callback;
+    public SDLDialogFileCallback? callback; // keeps the native callback rooted so the GC can't collect it
 }
 
 public static class ImGuiAugGisDrawer
 {
+    // Type rows start expanded when a layer has at most this many types; above it they
+    // start collapsed (the list stays a tidy overview). Expand all / Collapse all overrides either way.
+    private const int TypeAutoExpandThreshold = 6;
 
-		// Persistent JSON filter for the dialogs — allocated once and kept for the app's lifetime
-// so it stays valid for SDL's asynchronous callback.
-private static readonly unsafe SDLDialogFileFilter* s_jsonFilter = CreateJsonFilter();
-public static unsafe SDLDialogFileFilter* JsonFilter => s_jsonFilter;
+    // --- persistent JSON filter for the file dialogs (allocated once, lives for the app's lifetime) ---
+    private static readonly unsafe SDLDialogFileFilter* s_jsonFilter = CreateJsonFilter();
+    public static unsafe SDLDialogFileFilter* JsonFilter => s_jsonFilter;
 
-private static unsafe SDLDialogFileFilter* CreateJsonFilter()
-{
-    SDLDialogFileFilter* f = (SDLDialogFileFilter*)NativeMemory.Alloc((nuint)sizeof(SDLDialogFileFilter));
-    f->Name = (byte*)Marshal.StringToCoTaskMemUTF8("JSON files (*.json)");
-    f->Pattern = (byte*)Marshal.StringToCoTaskMemUTF8("json");
-    return f;
-}
+    private static unsafe SDLDialogFileFilter* CreateJsonFilter()
+    {
+        SDLDialogFileFilter* f = (SDLDialogFileFilter*)NativeMemory.Alloc((nuint)sizeof(SDLDialogFileFilter));
+        f->Name = (byte*)Marshal.StringToCoTaskMemUTF8("JSON files (*.json)");
+        f->Pattern = (byte*)Marshal.StringToCoTaskMemUTF8("json");
+        return f;
+    }
 
-	public static void ShowErrorPopupModal(string a_message, string a_option, Action a_onClose)
-	{
-		string error = "Error";
-		if (!ImGui.IsPopupOpen(error))
-		{
-			ImGui.OpenPopup(error);
-		}
+    // ---------------------------------------------------------------------
+    // Dialogs
+    // ---------------------------------------------------------------------
+    public static void ShowErrorPopupModal(string a_message, string a_option, Action a_onClose)
+    {
+        string error = "Error";
+        if (!ImGui.IsPopupOpen(error))
+        {
+            ImGui.OpenPopup(error);
+        }
 
-		if (ImGui.BeginPopupModal(error, ImGuiWindowFlags.AlwaysAutoResize))
-		{
-			ImGui.Text(a_message);
-			if (ImGui.Button(a_option))
-			{
-				ImGui.CloseCurrentPopup();
-				a_onClose?.Invoke();
-			}
-		}
-		
-		ImGui.EndPopup();
-	}
+        if (ImGui.BeginPopupModal(error, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.Text(a_message);
+            if (ImGui.Button(a_option))
+            {
+                ImGui.CloseCurrentPopup();
+                a_onClose?.Invoke();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
 
     public static unsafe void ShowOpenFolderDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
     {
@@ -89,354 +94,312 @@ private static unsafe SDLDialogFileFilter* CreateJsonFilter()
         SDL.ShowSaveFileDialog(a_handle.callback, null, a_window, a_filters, a_filterCount, "");
     }
 
-    public static void DrawSettingsDataModel(SettingsDataModel a_settingsDataModel)
-	{
-		ImGui.InputText("Region", ref a_settingsDataModel.region, 100);
+    // ---------------------------------------------------------------------
+    // Vector layer editor pieces (called from the content pane)
+    // ---------------------------------------------------------------------
+    public static void DrawVectorLayerTypeSelection(VectorLayerSetting a_vectorLayerSetting)
+    {
+        if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.selectedTypeKey))
+        {
+            foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
+            {
+                if (ImGui.Selectable(key))
+                {
+                    if (a_vectorLayerSetting.selectedTypeKey != key)
+                    {
+                        a_vectorLayerSetting.layerTypeData.Clear();
+                        foreach (var attribValue in a_vectorLayerSetting.attributeKeyToValues[key])
+                        {
+                            a_vectorLayerSetting.layerTypeData.Add(
+                                new LayerTypeData() { name = attribValue?.ToString() ?? "" });
+                        }
+                    }
 
-		ImGui.PushItemWidth(100);
-		ImGui.InputDouble("Min X", ref a_settingsDataModel.coordinate0.x);
-		ImGui.SameLine();
-		ImGui.InputDouble("Min Y", ref a_settingsDataModel.coordinate0.y);
+                    a_vectorLayerSetting.selectedTypeKey = key;
+                }
+            }
 
-		ImGui.InputDouble("Max X", ref a_settingsDataModel.coordinate1.x);
-		ImGui.SameLine();
-		ImGui.InputDouble("Max Y", ref a_settingsDataModel.coordinate1.y);
-		ImGui.PopItemWidth();
+            ImGui.EndCombo();
+        }
+    }
 
-        ImGui.Checkbox("Generate Basemap", ref a_settingsDataModel.generateBasemap);
+    public static void DrawDynamicStringList(string a_label, List<string> a_stringList)
+    {
+        if (!ImGui.CollapsingHeader($"{a_label}  ({a_stringList.Count})", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-        if (ImGui.TreeNode("Vector Layer Settings"))
-		{
-			for (int i = 0; i < a_settingsDataModel.vectorLayerSettings.Count; i++)
-			{
-				VectorLayerSetting vectorLayerSetting = a_settingsDataModel.vectorLayerSettings[i];
-				DrawVectorLayerSettings(vectorLayerSetting, i);
-			}
+        ImGui.PushID(a_label);
+        if (ImGui.SmallButton("+ Add"))
+        {
+            a_stringList.Add(string.Empty);
+        }
 
-			ImGui.TreePop();
-		}
+        ImGui.Indent();
+        for (int i = a_stringList.Count - 1; i >= 0; i--)
+        {
+            ImGui.PushID(i);
+            if (ImGui.SmallButton("-"))
+            {
+                a_stringList.RemoveAt(i);
+                ImGui.PopID();
+                continue;
+            }
 
-		if (ImGui.TreeNode("Raster Layer Settings"))
-		{
-			for (int i = 0; i < a_settingsDataModel.rasterLayerSettings.Count; i++)
-			{
-				RasterLayerSetting rasterLayerSetting = a_settingsDataModel.rasterLayerSettings[i];
-				DrawRasterLayerSettings(rasterLayerSetting, i);
-			}
+            ImGui.SameLine();
+            string currentString = a_stringList[i];
+            ImGui.InputText("##entry", ref currentString, (nuint)255);
+            a_stringList[i] = currentString;
+            ImGui.PopID();
+        }
+        ImGui.Unindent();
 
-			ImGui.TreePop();
-		}
-	}
+        ImGui.PopID();
+    }
 
-	public static void DrawVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting, int a_id)
-	{
-		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(), a_vectorLayerSetting.name))
-		{
-			DrawVectorLayerTypeSelection(a_vectorLayerSetting);
-			DrawDynamicStringList("Tags",a_vectorLayerSetting.tags);
-			DrawLayerTypesForVectorLayerSettings(a_vectorLayerSetting);
-			ImGui.TreePop();
-		}
+    public static void DrawLayerTypesForVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting)
+    {
+        List<LayerTypeData> types = a_vectorLayerSetting.layerTypeData;
 
-		ImGui.PopID();
-	}
+        if (!ImGui.CollapsingHeader($"Type Data  ({types.Count})", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-	public static void DrawVectorLayerTypeSelection(VectorLayerSetting a_vectorLayerSetting)
-	{
-		if (ImGui.BeginCombo("Choose Type", a_vectorLayerSetting.selectedTypeKey))
-		{
-			foreach (string key in a_vectorLayerSetting.attributeKeyToValues.Keys)
-			{
-				if (ImGui.Selectable(key))
-				{
-					if (a_vectorLayerSetting.selectedTypeKey != key)
-					{
-						a_vectorLayerSetting.layerTypeData.Clear();
-						foreach (var attribValue in a_vectorLayerSetting.attributeKeyToValues[key])
-						{
-							a_vectorLayerSetting.layerTypeData.Add(new LayerTypeData(){name = attribValue.ToString()});
-						}
-					}
-					a_vectorLayerSetting.selectedTypeKey = key;
-				}
-			}
+        ImGui.PushID("Type Data Settings");
 
-			ImGui.EndCombo();
-		}
-	}
+        bool? forceOpen = null;
+        if (ImGui.SmallButton("Expand all")) forceOpen = true;
+        ImGui.SameLine();
+        if (ImGui.SmallButton("Collapse all")) forceOpen = false;
 
-	public static void DrawRasterLayerSettings(RasterLayerSetting a_rasterLayerSetting, int a_id)
-	{
-		ImGui.PushID(a_id);
-		if (ImGui.TreeNode(a_id.ToString(), a_rasterLayerSetting.name))
-		{
-			ImGui.PushID("TypeSettings");
-			DrawRasterLayerTypeSettings(a_rasterLayerSetting);
-			ImGui.PopID();
+        bool autoOpen = types.Count <= TypeAutoExpandThreshold;
 
-			ImGui.PushID("TagsSettings");
-			DrawRasterTags(a_rasterLayerSetting);
-			ImGui.PopID();
-			
-			ImGui.PushID("MappingSettings");
-			DrawRasterLayerMappingSettings(a_rasterLayerSetting);
-			ImGui.PopID();
+        for (int i = 0; i < types.Count; i++)
+        {
+            LayerTypeData layerTypeData = types[i];
+            ImGui.PushID(i);
 
-			ImGui.PushID("ScaleSettings");
-			DrawRasterLayerScaleSettings(a_rasterLayerSetting);
-			ImGui.PopID();
+            DrawColorSwatch(layerTypeData.polygonColor); // swatch + SameLine
 
-			ImGui.TreePop();
-		}
+            // SetNextItemOpen must be the call right before the header (no item in between).
+            if (forceOpen.HasValue)
+                ImGui.SetNextItemOpen(forceOpen.Value, ImGuiCond.Always);
+            else
+                ImGui.SetNextItemOpen(autoOpen, ImGuiCond.FirstUseEver);
 
-		ImGui.PopID();
-	}
+            if (ImGui.CollapsingHeader(string.IsNullOrEmpty(layerTypeData.name) ? "(unnamed)" : layerTypeData.name))
+            {
+                ImGui.Indent();
+                DrawLayerTypeData(layerTypeData);
+                ImGui.Unindent();
+            }
 
-	public static void DrawDynamicStringList(string a_label, List<string> a_stringList)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_stringList.Add(string.Empty);
-		}
+            ImGui.PopID();
+        }
 
-		ImGui.SameLine();
-		if (ImGui.TreeNode(a_label))
-		{
-			for (int i = a_stringList.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_stringList.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
+        ImGui.PopID();
+    }
 
-				ImGui.SameLine();
-				string currentString = a_stringList[i];
-				ImGui.InputText("Type", ref currentString, (nuint)255);
-				a_stringList[i] = currentString;
-				ImGui.PopID();
-			}
+    public static void DrawLayerTypeData(LayerTypeData a_layerTypeData)
+    {
+        ImGui.InputInt("Value", ref a_layerTypeData.value);
+        ImGui.InputText("Description", ref a_layerTypeData.description, (nuint)255);
 
-			ImGui.TreePop();
-		}
-	}
-	
-	public static void DrawRasterLayerTypeSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_rasterLayerSetting.rasterLayerTypes.Add(new LayerTypeData());
-		}
+        ImGui.SeparatorText("Polygon");
+        DrawColorInputFromHexString("Polygon Color", ref a_layerTypeData.polygonColor);
+        ImGui.InputText("Polygon Pattern Name", ref a_layerTypeData.polygonPatternName, (nuint)255);
 
-		ImGui.SameLine();
-		if (ImGui.TreeNode("Types"))
-		{
-			for (int i = a_rasterLayerSetting.rasterLayerTypes.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_rasterLayerSetting.rasterLayerTypes.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
+        ImGui.SeparatorText("Line");
+        DrawColorInputFromHexString("Line Color", ref a_layerTypeData.lineColor);
+        ImGui.InputFloat("Line Width", ref a_layerTypeData.lineWidth);
+        ImGui.InputText("Line Icon", ref a_layerTypeData.lineIcon, (nuint)255);
+        ImGui.InputText("Line Pattern Type", ref a_layerTypeData.linePatternType, (nuint)255);
 
-				ImGui.SameLine();
-				ImGui.InputText("Type", ref a_rasterLayerSetting.rasterLayerTypes[i].name, (nuint)255);
-				ImGui.PopID();
-			}
+        ImGui.SeparatorText("Point");
+        DrawColorInputFromHexString("Point Color", ref a_layerTypeData.pointColor);
+        ImGui.InputFloat("Point Size", ref a_layerTypeData.pointSize);
+        ImGui.InputText("Point Sprite Name", ref a_layerTypeData.pointSpriteName, (nuint)255);
 
-			ImGui.TreePop();
-		}
-	}
+        ImGui.Spacing();
+    }
 
-	public static void DrawRasterLayerMappingSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.Button("+"))
-		{
-			a_rasterLayerSetting.rasterMappings.Add(new RasterMapping());
-		}
+    // ---------------------------------------------------------------------
+    // Raster layer editor pieces (called from the content pane)
+    // ---------------------------------------------------------------------
+    public static void DrawRasterLayerTypeSettings(RasterLayerSetting a_rasterLayerSetting)
+    {
+        if (!ImGui.CollapsingHeader($"Types  ({a_rasterLayerSetting.rasterLayerTypes.Count})", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-		ImGui.SameLine();
-		if (ImGui.TreeNode("Mappings"))
-		{
-			for (int i = a_rasterLayerSetting.rasterMappings.Count - 1; i >= 0; i--)
-			{
-				ImGui.PushID(i);
-				if (ImGui.Button("-"))
-				{
-					a_rasterLayerSetting.rasterMappings.RemoveAt(i);
-					ImGui.PopID();
-					continue;
-				}
+        ImGui.PushID("RasterTypes");
+        if (ImGui.SmallButton("+ Add"))
+        {
+            a_rasterLayerSetting.rasterLayerTypes.Add(new LayerTypeData());
+        }
 
-				ImGui.SameLine();
-				if (ImGui.TreeNode("Mapping"))
-				{
-					RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
-					ImGui.InputInt("Min", ref currentMapping.min);
-					ImGui.InputInt("Max", ref currentMapping.max);
-					string previewName = a_rasterLayerSetting.rasterLayerTypes.Count == 0
-						? "##"
-						: a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name;
-					if (ImGui.BeginCombo("Choose Type", previewName))
-					{
-						foreach (LayerTypeData type in a_rasterLayerSetting.rasterLayerTypes)
-						{
-							string selectableLabel = type.name == String.Empty ? "##" : type.name;
-							if (ImGui.Selectable(selectableLabel))
-							{
-								currentMapping.typeIndex = a_rasterLayerSetting.rasterLayerTypes.IndexOf(type);
-							}
-						}
+        ImGui.Indent();
+        for (int i = a_rasterLayerSetting.rasterLayerTypes.Count - 1; i >= 0; i--)
+        {
+            ImGui.PushID(i);
+            if (ImGui.SmallButton("-"))
+            {
+                a_rasterLayerSetting.rasterLayerTypes.RemoveAt(i);
+                ImGui.PopID();
+                continue;
+            }
 
-						ImGui.EndCombo();
-					}
+            ImGui.SameLine();
+            ImGui.InputText("##type", ref a_rasterLayerSetting.rasterLayerTypes[i].name, (nuint)255);
+            ImGui.PopID();
+        }
+        ImGui.Unindent();
 
-					ImGui.TreePop();
-				}
+        ImGui.PopID();
+    }
 
-				ImGui.PopID();
-			}
+    public static void DrawRasterLayerMappingSettings(RasterLayerSetting a_rasterLayerSetting)
+    {
+        if (!ImGui.CollapsingHeader($"Mappings  ({a_rasterLayerSetting.rasterMappings.Count})", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-			ImGui.TreePop();
-		}
-	}
+        ImGui.PushID("RasterMappings");
+        if (ImGui.SmallButton("+ Add"))
+        {
+            a_rasterLayerSetting.rasterMappings.Add(new RasterMapping());
+        }
 
-	public static void DrawRasterLayerScaleSettings(RasterLayerSetting a_rasterLayerSetting)
-	{
-		if (ImGui.TreeNode("Scale"))
-		{
-			RasterScale currentScale = a_rasterLayerSetting.rasterScale;
-			ImGui.InputInt("Min", ref currentScale.minValue);
-			ImGui.InputInt("Max", ref currentScale.maxValue);
-			if (ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
-			{
-				for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
-				{
-					RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
-					if (ImGui.Selectable(currentInterpolation.ToString()))
-					{
-						currentScale.interpolation = (RasterScale.EInterpolation)enumIndex;
-					}
-				}
+        for (int i = a_rasterLayerSetting.rasterMappings.Count - 1; i >= 0; i--)
+        {
+            ImGui.PushID(i);
+            RasterMapping currentMapping = a_rasterLayerSetting.rasterMappings[i];
 
-				ImGui.EndCombo();
-			}
+            ImGui.SeparatorText($"Mapping {i}");
+            if (ImGui.SmallButton("- Remove"))
+            {
+                a_rasterLayerSetting.rasterMappings.RemoveAt(i);
+                ImGui.PopID();
+                continue;
+            }
 
-			if (currentScale.interpolation == RasterScale.EInterpolation.LinGrouped)
-			{
-				if (ImGui.Button("+"))
-				{
-					a_rasterLayerSetting.rasterScale.interpolationGroups.Add(new RasterScale.InterpolationGroup());
-				}
+            ImGui.InputInt("Min", ref currentMapping.min);
+            ImGui.InputInt("Max", ref currentMapping.max);
 
-				ImGui.SameLine();
-				if (ImGui.TreeNode("Linear Scale Groups"))
-				{
-					for (int i = a_rasterLayerSetting.rasterScale.interpolationGroups.Count - 1; i >= 0; i--)
-					{
-						ImGui.PushID(i);
-						if (ImGui.Button("-"))
-						{
-							a_rasterLayerSetting.rasterScale.interpolationGroups.RemoveAt(i);
-							ImGui.PopID();
-							continue;
-						}
+            bool validIndex = currentMapping.typeIndex >= 0 &&
+                              currentMapping.typeIndex < a_rasterLayerSetting.rasterLayerTypes.Count;
+            string previewName = validIndex
+                ? a_rasterLayerSetting.rasterLayerTypes[currentMapping.typeIndex].name
+                : "##";
+            if (ImGui.BeginCombo("Type", previewName))
+            {
+                foreach (LayerTypeData type in a_rasterLayerSetting.rasterLayerTypes)
+                {
+                    string selectableLabel = type.name == string.Empty ? "##" : type.name;
+                    if (ImGui.Selectable(selectableLabel))
+                    {
+                        currentMapping.typeIndex = a_rasterLayerSetting.rasterLayerTypes.IndexOf(type);
+                    }
+                }
 
-						ImGui.SameLine();
-						if (ImGui.TreeNode("Group"))
-						{
-							RasterScale.InterpolationGroup currentGroup =
-								a_rasterLayerSetting.rasterScale.interpolationGroups[i];
-							ImGui.InputDouble("Normalised Input Value", ref currentGroup.normalisedInputValue);
-							ImGui.InputInt("Min Output Value", ref currentGroup.minOutputValue);
+                ImGui.EndCombo();
+            }
 
-							ImGui.TreePop();
-						}
+            ImGui.PopID();
+        }
 
-						ImGui.PopID();
-					}
+        ImGui.PopID();
+    }
 
-					ImGui.TreePop();
-				}
-			}
+    public static void DrawRasterLayerScaleSettings(RasterLayerSetting a_rasterLayerSetting)
+    {
+        if (!ImGui.CollapsingHeader("Scale", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
 
-			ImGui.TreePop();
-		}
-	}
+        ImGui.PushID("RasterScale");
+        RasterScale currentScale = a_rasterLayerSetting.rasterScale;
+        ImGui.InputInt("Min", ref currentScale.minValue);
+        ImGui.InputInt("Max", ref currentScale.maxValue);
+        if (ImGui.BeginCombo("Interpolation Type", currentScale.interpolation.ToString()))
+        {
+            for (int enumIndex = 0; enumIndex < (int)RasterScale.EInterpolation.Count; enumIndex++)
+            {
+                RasterScale.EInterpolation currentInterpolation = (RasterScale.EInterpolation)enumIndex;
+                if (ImGui.Selectable(currentInterpolation.ToString()))
+                {
+                    currentScale.interpolation = currentInterpolation;
+                }
+            }
 
-	public static void DrawRasterTags(RasterLayerSetting a_rasterLayerSetting)
-	{
-		DrawDynamicStringList("Tags",a_rasterLayerSetting.tags);
-	}
+            ImGui.EndCombo();
+        }
 
-	public static void DrawLayerTypesForVectorLayerSettings(VectorLayerSetting a_vectorLayerSetting)
-	{
-		if(ImGui.TreeNode("Type Data Settings"))
-		{
-			ImGui.PushID("Type Data Settings");
-			for(int i = 0; i< a_vectorLayerSetting.layerTypeData.Count; i++)
-			{
-				LayerTypeData  layerTypeData = a_vectorLayerSetting.layerTypeData[i]; 
-				ImGui.PushID(i);
-				if (ImGui.TreeNode(layerTypeData.name))
-				{
-					DrawLayerTypeData(layerTypeData);
-					ImGui.TreePop();
-				}
-				ImGui.PopID();
-			}
-			
-			ImGui.PopID();
-			ImGui.TreePop();
-		}
-	}
-	
-	public static void DrawLayerTypeData(LayerTypeData a_layerTypeData)
-	{
-		ImGui.TextDisabled(a_layerTypeData.name);
-		ImGui.InputInt("Value", ref a_layerTypeData.value);
-		
-		DrawColorInputFromHexString("Polygon Color", ref a_layerTypeData.polygonColor);
-		ImGui.InputText("Polygon Pattern Name", ref a_layerTypeData.polygonPatternName, (nuint)255);
-		
-		DrawColorInputFromHexString("Line Color", ref a_layerTypeData.lineColor);
-		ImGui.InputFloat("Line Width", ref a_layerTypeData.lineWidth);
-		ImGui.InputText("Line Icon", ref a_layerTypeData.lineIcon, (nuint)255);
-		ImGui.InputText("Line Pattern Type", ref a_layerTypeData.linePatternType, (nuint)255);
-		
-		DrawColorInputFromHexString("Point Color", ref a_layerTypeData.pointColor);
-		ImGui.InputFloat("Point Size", ref a_layerTypeData.pointSize);
-		ImGui.InputText("Point Sprite Name", ref a_layerTypeData.pointSpriteName, (nuint)255);
-		
-		ImGui.InputText("Description", ref a_layerTypeData.description, (nuint)255);
-	}
+        if (currentScale.interpolation == RasterScale.EInterpolation.LinGrouped)
+        {
+            ImGui.SeparatorText("Linear Scale Groups");
+            if (ImGui.SmallButton("+ Add"))
+            {
+                a_rasterLayerSetting.rasterScale.interpolationGroups.Add(new RasterScale.InterpolationGroup());
+            }
 
-	public static void DrawColorInputFromHexString(string a_label, ref string a_hexString)
-	{
-		AugGisConfigUtils.TryParseHexColor(a_hexString, out uint hexValue);
-		Vector3 color = AugGisConfigUtils.HexToVec3(hexValue);
-		
-		if (ImGui.ColorEdit3(a_label, ref color))
-		{
+            ImGui.Indent();
+            for (int i = a_rasterLayerSetting.rasterScale.interpolationGroups.Count - 1; i >= 0; i--)
+            {
+                ImGui.PushID(i);
+                RasterScale.InterpolationGroup currentGroup = a_rasterLayerSetting.rasterScale.interpolationGroups[i];
+                if (ImGui.SmallButton("-"))
+                {
+                    a_rasterLayerSetting.rasterScale.interpolationGroups.RemoveAt(i);
+                    ImGui.PopID();
+                    continue;
+                }
+
+                ImGui.SameLine();
+                ImGui.InputDouble("Normalised Input Value", ref currentGroup.normalisedInputValue);
+                ImGui.InputInt("Min Output Value", ref currentGroup.minOutputValue);
+                ImGui.PopID();
+            }
+            ImGui.Unindent();
+        }
+
+        ImGui.PopID();
+    }
+
+    public static void DrawRasterTags(RasterLayerSetting a_rasterLayerSetting)
+    {
+        DrawDynamicStringList("Tags", a_rasterLayerSetting.tags);
+    }
+
+    // ---------------------------------------------------------------------
+    // Colour helpers
+    // ---------------------------------------------------------------------
+    private static void DrawColorSwatch(string a_hex)
+    {
+        AugGisConfigUtils.TryParseHexColor(a_hex, out uint value);
+        Vector3 color = AugGisConfigUtils.HexToVec3(value);
+        ImGui.ColorButton("##swatch", new Vector4(color, 1f),
+            ImGuiColorEditFlags.NoTooltip | ImGuiColorEditFlags.NoPicker, new System.Numerics.Vector2(16, 16));
+        ImGui.SameLine();
+    }
+
+    public static void DrawColorInputFromHexString(string a_label, ref string a_hexString)
+    {
+        AugGisConfigUtils.TryParseHexColor(a_hexString, out uint hexValue);
+        Vector3 color = AugGisConfigUtils.HexToVec3(hexValue);
+
+        if (ImGui.ColorEdit3(a_label, ref color))
+        {
             a_hexString = "#" + AugGisConfigUtils.Vec3ToHex(color).ToString("X6");
         }
     }
 
-	public static unsafe void DrawPathBrowser(SDLWindow * a_window, OpenFileDialogHandle a_openFileDialogHandle, string a_label = "Path")
-	{
-		ImGui.InputText(a_label, ref a_openFileDialogHandle.pickedPath, 512);
-		ImGui.SameLine();
+    // ---------------------------------------------------------------------
+    // Path browser (used by the Launch Server popup)
+    // ---------------------------------------------------------------------
+    public static unsafe void DrawPathBrowser(SDLWindow* a_window, OpenFileDialogHandle a_openFileDialogHandle, string a_label = "Path")
+    {
+        ImGui.InputText(a_label, ref a_openFileDialogHandle.pickedPath, 512);
+        ImGui.SameLine();
 
-		if (ImGui.Button("..."))
-		{
-			ShowOpenFileDialog(a_window, a_openFileDialogHandle);
-		}
-	}
-
-
+        if (ImGui.Button("..."))
+        {
+            ShowOpenFileDialog(a_window, a_openFileDialogHandle);
+        }
+    }
 }
