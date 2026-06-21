@@ -141,7 +141,7 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			VectorLayerSetting v = model.vectorLayerSettings[i];
 			ImGui.PushID(i);
-			DrawSwatch(VectorLayerColor(v));
+            DrawLayerSwatch(VectorLayerColors(v));
 			ImGui.SameLine();
 			bool selected = m_selectionKind == SelectionKind.Vector && m_selectionIndex == i;
 			if (ImGui.Selectable(string.IsNullOrEmpty(v.name) ? "(unnamed)" : v.name, selected))
@@ -157,7 +157,7 @@ internal class AugGISConfigToolGUIApp : Application
 		{
 			RasterLayerSetting r = model.rasterLayerSettings[i];
 			ImGui.PushID(1000 + i);
-			DrawSwatch(RasterLayerColor(r));
+            DrawLayerSwatch(RasterLayerColors(r));
 			ImGui.SameLine();
 			bool selected = m_selectionKind == SelectionKind.Raster && m_selectionIndex == i;
 			if (ImGui.Selectable(string.IsNullOrEmpty(r.name) ? "(unnamed)" : r.name, selected))
@@ -221,27 +221,78 @@ internal class AugGISConfigToolGUIApp : Application
 		}
 	}
 
-	private static void DrawSwatch(Vector3 a_color)
-	{
-		ImGui.ColorButton("##sw", new Vector4(a_color, 1f),
-			ImGuiColorEditFlags.NoTooltip | ImGuiColorEditFlags.NoPicker, new  System.Numerics.Vector2(14, 14));
-	}
+    private static void DrawLayerSwatch(List<Vector3> a_colors)
+    {
+        const int maxSegments = 6;
+        int n = Math.Min(a_colors.Count, maxSegments);
 
-	private static Vector3 VectorLayerColor(VectorLayerSetting v)
-	{
-		if (v.layerTypeData.Count > 0)
-			return HexToColor(v.layerTypeData[0].polygonColor);
-		return new Vector3(0.4f, 0.42f, 0.45f);
-	}
+        float h = ImGui.GetTextLineHeight();
+        System.Numerics.Vector2 size = new System.Numerics.Vector2(22f, h);
+        System.Numerics.Vector2 p = ImGui.GetCursorScreenPos();
+        ImDrawListPtr dl = ImGui.GetWindowDrawList();
 
-	private static Vector3 RasterLayerColor(RasterLayerSetting r)
-	{
-		if (r.rasterLayerTypes.Count > 0)
-			return HexToColor(r.rasterLayerTypes[0].polygonColor);
-		return new Vector3(0.4f, 0.42f, 0.45f);
-	}
+        if (n == 0)
+        {
+            dl.AddRectFilled(p, new System.Numerics.	Vector2(p.X + size.X, p.Y + size.Y),
+                ImGui.GetColorU32(new Vector4(0.40f, 0.42f, 0.45f, 1f))); // neutral when no types
+        }
+        else
+        {
+            float segW = size.X / n;
+            for (int i = 0; i < n; i++)
+            {
+                System.Numerics.Vector2 a = new System.Numerics.Vector2(p.X + i * segW, p.Y);
+                System.Numerics.Vector2 b = new System.Numerics.Vector2(p.X + (i + 1) * segW, p.Y + size.Y);
+                dl.AddRectFilled(a, b, ImGui.GetColorU32(new Vector4(a_colors[i], 1f)));
+            }
+        }
 
-	private static Vector3 HexToColor(string a_hex)
+        dl.AddRect(p, new System.Numerics.Vector2(p.X + size.X, p.Y + size.Y),
+            ImGui.GetColorU32(new Vector4(0f, 0f, 0f, 0.45f))); // subtle border
+
+        ImGui.Dummy(size); // reserve layout space for the hand-drawn swatch
+    }
+
+    private static List<Vector3> VectorLayerColors(VectorLayerSetting v)
+        => LayerColors(v.layerTypeData, GeometryOf(v.tags));
+
+    private static List<Vector3> RasterLayerColors(RasterLayerSetting r)
+        => LayerColors(r.rasterLayerTypes, "Polygon");
+
+    // Distinct geometry-appropriate colours across a layer's types, in order of first appearance.
+    private static List<Vector3> LayerColors(IEnumerable<LayerTypeData> a_types, string a_geometry)
+    {
+        HashSet<uint> seen = new HashSet<uint>();
+        List<Vector3> colors = new List<Vector3>();
+        foreach (LayerTypeData t in a_types)
+        {
+            AugGisConfigUtils.TryParseHexColor(GeometryColor(t, a_geometry), out uint value);
+            if (seen.Add(value))
+                colors.Add(AugGisConfigUtils.HexToVec3(value));
+        }
+        return colors;
+    }
+
+    private static string GeometryColor(LayerTypeData a_type, string a_geometry) => a_geometry switch
+    {
+        "Line" => a_type.lineColor,
+        "Point" => a_type.pointColor,
+        _ => a_type.polygonColor,
+    };
+
+    private static string GeometryOf(List<string> a_tags)
+    {
+        foreach (string tag in a_tags)
+        {
+            string t = tag.ToLowerInvariant();
+            if (t.Contains("polygon")) return "Polygon";
+            if (t.Contains("line")) return "Line";
+            if (t.Contains("point")) return "Point";
+        }
+        return "Polygon";
+    }
+
+    private static Vector3 HexToColor(string a_hex)
 	{
 		AugGisConfigUtils.TryParseHexColor(a_hex, out uint value);
 		return AugGisConfigUtils.HexToVec3(value);
