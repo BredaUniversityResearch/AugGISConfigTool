@@ -9,8 +9,9 @@ namespace AugGISConfigToolGUI;
 
 public class OpenFileDialogHandle
 {
-	public bool hasFinished = false;
-	public string? pickedPath = string.Empty;
+    public bool hasFinished = false;
+    public string? pickedPath = string.Empty;
+    public SDLDialogFileCallback? callback;
 }
 
 public static class ImGuiAugGisDrawer
@@ -50,41 +51,45 @@ private static unsafe SDLDialogFileFilter* CreateJsonFilter()
 		ImGui.EndPopup();
 	}
 
-	public static unsafe void ShowOpenFolderDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
-	{
-		SDL.ShowOpenFolderDialog(((a_userdata, a_fileList, a_filter) =>
-		{
-			a_handle.hasFinished = true;
-			a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
-		}), null, a_window, "", false);
-	}
-	
-public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
-    => ShowOpenFileDialog(a_window, a_handle, null, 0);
-
-public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
-    SDLDialogFileFilter* a_filters, int a_filterCount)
-{
-    SDL.ShowOpenFileDialog((a_userdata, a_fileList, a_filter) =>
+    public static unsafe void ShowOpenFolderDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
     {
-        if (a_fileList == null || a_fileList[0] == null) return; // cancelled or error
-        a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
-        a_handle.hasFinished = true;
-    }, null, a_window, a_filters, a_filterCount, "", false);
-}
+        a_handle.callback = (a_userdata, a_fileList, a_filter) =>
+        {
+            if (a_fileList == null || a_fileList[0] == null) return; // cancelled or error
+            a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
+            a_handle.hasFinished = true;
+        };
+        SDL.ShowOpenFolderDialog(a_handle.callback, null, a_window, "", false);
+    }
 
-public static unsafe void ShowSaveFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
-    SDLDialogFileFilter* a_filters, int a_filterCount)
-{
-    SDL.ShowSaveFileDialog((a_userdata, a_fileList, a_filter) =>
+    public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle)
+        => ShowOpenFileDialog(a_window, a_handle, null, 0);
+
+    public static unsafe void ShowOpenFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
+        SDLDialogFileFilter* a_filters, int a_filterCount)
     {
-        if (a_fileList == null || a_fileList[0] == null) return; // cancelled or error
-        a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
-        a_handle.hasFinished = true;
-    }, null, a_window, a_filters, a_filterCount, "");
-}
-	
-	public static void DrawSettingsDataModel(SettingsDataModel a_settingsDataModel)
+        a_handle.callback = (a_userdata, a_fileList, a_filter) =>
+        {
+            if (a_fileList == null || a_fileList[0] == null) return;
+            a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
+            a_handle.hasFinished = true;
+        };
+        SDL.ShowOpenFileDialog(a_handle.callback, null, a_window, a_filters, a_filterCount, "", false);
+    }
+
+    public static unsafe void ShowSaveFileDialog(SDLWindow* a_window, OpenFileDialogHandle a_handle,
+        SDLDialogFileFilter* a_filters, int a_filterCount)
+    {
+        a_handle.callback = (a_userdata, a_fileList, a_filter) =>
+        {
+            if (a_fileList == null || a_fileList[0] == null) return;
+            a_handle.pickedPath = Utils.ToStringFromUTF8(a_fileList[0]);
+            a_handle.hasFinished = true;
+        };
+        SDL.ShowSaveFileDialog(a_handle.callback, null, a_window, a_filters, a_filterCount, "");
+    }
+
+    public static void DrawSettingsDataModel(SettingsDataModel a_settingsDataModel)
 	{
 		ImGui.InputText("Region", ref a_settingsDataModel.region, 100);
 
