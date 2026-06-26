@@ -20,5 +20,16 @@ namespace AugGISDataParser
 
         [JsonIgnore] public Vector2 extentsMin;
         [JsonIgnore] public Vector2 extentsMax;
+
+        public void SelectTypeAttribute(string a_key)
+        {
+            selectedTypeKey = a_key;
+            layerTypeData.Clear();
+            if (attributeKeyToValues.TryGetValue(a_key, out List<object?>? values))
+            {
+                foreach (object? value in values)
+                    layerTypeData.Add(new LayerTypeData { name = value?.ToString() ?? string.Empty });
+            }
+        }
     }
 }

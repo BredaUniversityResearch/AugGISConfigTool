@@ -105,17 +105,10 @@ public static class ImGuiAugGisDrawer
             {
                 if (ImGui.Selectable(key))
                 {
-                    if (a_vectorLayerSetting.selectedTypeKey != key)
-                    {
-                        a_vectorLayerSetting.layerTypeData.Clear();
-                        foreach (var attribValue in a_vectorLayerSetting.attributeKeyToValues[key])
-                        {
-                            a_vectorLayerSetting.layerTypeData.Add(
-                                new LayerTypeData() { name = attribValue?.ToString() ?? "" });
-                        }
-                    }
-
-                    a_vectorLayerSetting.selectedTypeKey = key;
+                    // rebuild when the key changes, or when the list is still empty
+                    // (e.g. a layer whose only attribute is already the selected key)
+                    if (a_vectorLayerSetting.selectedTypeKey != key || a_vectorLayerSetting.layerTypeData.Count == 0)
+                        a_vectorLayerSetting.SelectTypeAttribute(key);
                 }
             }
 

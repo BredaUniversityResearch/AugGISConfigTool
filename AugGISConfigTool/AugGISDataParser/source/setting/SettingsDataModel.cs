@@ -52,6 +52,13 @@ namespace AugGISDataParser
                 {
                     vectorLayerSetting.selectedTypeKey = vectorLayerSetting.attributeKeyToValues.Keys.ElementAt(0);
                 }
+
+                // Freshly parsed layers have a selected key but no type list yet — generate it so types
+                // show immediately. Saved settings already carry layerTypeData, so the guard skips them.
+                if (vectorLayerSetting.layerTypeData.Count == 0 && vectorLayerSetting.selectedTypeKey != string.Empty)
+                {
+                    vectorLayerSetting.SelectTypeAttribute(vectorLayerSetting.selectedTypeKey);
+                }
             }
         }
     }
