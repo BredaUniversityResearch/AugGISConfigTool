@@ -27,8 +27,10 @@ internal class AugGISConfigToolGUIApp : Application
 	private enum SelectionKind { None, Vector, Raster }
 	private SelectionKind m_selectionKind = SelectionKind.None;
 	private int m_selectionIndex = -1;
+    private float m_sidebarWidth = 250f;
+    private float m_topBarHeight = 100f;
 
-	static void Main()
+    static void Main()
 	{
 		AugGISConfigToolGUIApp app = new AugGISConfigToolGUIApp("AugGIS Config Tool", 1200, 700);
 		app.Run();
@@ -70,18 +72,38 @@ internal class AugGISConfigToolGUIApp : Application
 			{
 				if (loadedSettingsDataModel != null)
 				{
-					DrawTopBar(loadedSettingsDataModel);
+                    ImGui.BeginChild("##topbar", new System.Numerics.Vector2(0, m_topBarHeight), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
+                    DrawTopBar(loadedSettingsDataModel);
+                    ImGui.EndChild();
 
-					ImGui.BeginChild("##sidebar", new  System.Numerics.Vector2(250, 0), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
-					DrawLayerSidebar(loadedSettingsDataModel);
-					ImGui.EndChild();
+                    // thin draggable splitter to resize the topbar height
+                    ImGui.Button("##topsplitter", new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X, 6f));
+                    if (ImGui.IsItemActive())
+                        m_topBarHeight += ImGui.GetIO().MouseDelta.Y;
+                    if (ImGui.IsItemHovered() || ImGui.IsItemActive())
+                        ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeNs);
+                    m_topBarHeight = Math.Clamp(m_topBarHeight, 56f, 240f);
 
-					ImGui.SameLine();
+                    ImGui.BeginChild("##sidebar", new System.Numerics.Vector2(m_sidebarWidth, 0), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
+                    DrawLayerSidebar(loadedSettingsDataModel);
+                    ImGui.EndChild();
 
-					ImGui.BeginChild("##content", new System.Numerics.Vector2(0, 0), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
-					DrawSelectedContent(loadedSettingsDataModel);
-					ImGui.EndChild();
-				}
+                    ImGui.SameLine();
+
+                    // thin draggable splitter
+                    ImGui.Button("##splitter_sidebar", new System.Numerics.Vector2(6f, ImGui.GetContentRegionAvail().Y));
+                    if (ImGui.IsItemActive())
+                        m_sidebarWidth += ImGui.GetIO().MouseDelta.X;
+                    if (ImGui.IsItemHovered() || ImGui.IsItemActive())
+                        ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
+                    m_sidebarWidth = Math.Clamp(m_sidebarWidth, 150f, 600f);
+
+                    ImGui.SameLine();
+
+                    ImGui.BeginChild("##content", new System.Numerics.Vector2(0, 0), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
+                    DrawSelectedContent(loadedSettingsDataModel);
+                    ImGui.EndChild();
+                }
 				else
 				{
 					ImGui.Spacing();
@@ -105,8 +127,6 @@ internal class AugGISConfigToolGUIApp : Application
 	// ---------------------------------------------------------------------
 	private unsafe void DrawTopBar(SettingsDataModel model)
 	{
-		ImGui.BeginChild("##topbar", new System.Numerics.Vector2(0, 84), ImGuiChildFlags.Borders, ImGuiWindowFlags.None);
-
 		ImGui.PushItemWidth(240);
 		ImGui.InputText("Region", ref model.region, 100);
 		ImGui.PopItemWidth();
@@ -121,14 +141,17 @@ internal class AugGISConfigToolGUIApp : Application
 		if (ImGui.Button("Export to Config"))
 			ImGuiAugGisDrawer.ShowOpenFolderDialog(sdlWindow, exportConfigFileHandle);
 
-		ImGui.PushItemWidth(110);
-		ImGui.InputDouble("Min X", ref model.coordinate0.x); ImGui.SameLine();
-		ImGui.InputDouble("Min Y", ref model.coordinate0.y); ImGui.SameLine();
-		ImGui.InputDouble("Max X", ref model.coordinate1.x); ImGui.SameLine();
-		ImGui.InputDouble("Max Y", ref model.coordinate1.y);
-		ImGui.PopItemWidth();
+        // four extent fields spread evenly across the available width
+        float spacing = ImGui.GetStyle().ItemSpacing.X;
+        float fieldW = (ImGui.GetContentRegionAvail().X - spacing * 3f) / 4f;
+        fieldW = Math.Max(fieldW, 90f); // don't let them collapse to nothing
 
-		ImGui.EndChild();
+        ImGui.PushItemWidth(fieldW * 0.62f); // leave room for the label beside each box
+        ImGui.InputDouble("Min X", ref model.coordinate0.x); ImGui.SameLine();
+        ImGui.InputDouble("Min Y", ref model.coordinate0.y); ImGui.SameLine();
+        ImGui.InputDouble("Max X", ref model.coordinate1.x); ImGui.SameLine();
+        ImGui.InputDouble("Max Y", ref model.coordinate1.y);
+        ImGui.PopItemWidth();
 	}
 
 	// ---------------------------------------------------------------------
