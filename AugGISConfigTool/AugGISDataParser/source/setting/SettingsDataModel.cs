@@ -29,10 +29,12 @@ namespace AugGISDataParser
                             SettingsDataCreator.ParseShapeFile(vectorLayerSetting.shapeFilePath).features;
                     }
                     else if (vectorLayerSetting.shapeFilePath.EndsWith(".json") ||
-                             vectorLayerSetting.shapeFilePath.EndsWith(".geojson"))
+                             vectorLayerSetting.shapeFilePath.EndsWith(".geojson") ||
+                             vectorLayerSetting.shapeFilePath.EndsWith(".gpx"))
                     {
-                        GeoJsonFeatureSets sets =
-                            SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
+                        GeoJsonFeatureSets sets = vectorLayerSetting.shapeFilePath.EndsWith(".gpx")
+                            ? SettingsDataCreator.GetFeatureSetFromGpx(vectorLayerSetting.shapeFilePath)
+                            : SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
 
                         if (vectorLayerSetting.tags.Contains("Point"))
                             vectorLayerSetting.features = sets.pointFeatures;

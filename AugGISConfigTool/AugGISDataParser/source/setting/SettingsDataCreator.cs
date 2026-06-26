@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Linq;
+using System.Xml;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;            // GeoJsonReader
@@ -30,12 +30,14 @@ namespace AugGISDataParser
             string[] files = Directory.GetFiles(a_gisDataDirectoryPath);
             List<string> shpFiles = new();
             List<string> geoJsonFiles = new();
+            List<string> gpxFiles = new();
             List<string> rasterTifFiles = new();
 
             foreach (string file in files)
             {
                 if (file.EndsWith(".shp")) shpFiles.Add(file);
                 else if (file.EndsWith(".json") || file.EndsWith(".geojson")) geoJsonFiles.Add(file);
+                else if (file.EndsWith(".gpx")) gpxFiles.Add(file);
                 else if (file.EndsWith(".tiff") || file.EndsWith(".tif")) rasterTifFiles.Add(file);
                 else Console.WriteLine("[Warning] Unsupported GIS file detected: {0}", file);
             }
@@ -53,32 +55,13 @@ namespace AugGISDataParser
 
             // ---- geojson ----
             foreach (string geoJsonFile in geoJsonFiles)
-            {
-                GeoJsonFeatureSets sets = GetFeatureSetFromGeoJson(geoJsonFile);
-                string jsonFileName = Path.GetFileName(geoJsonFile);
+                AddFeatureSetLayers(settingsDataModel, GetFeatureSetFromGeoJson(geoJsonFile),
+                    Path.GetFileName(geoJsonFile), geoJsonFile);
 
-                if (sets.pointFeatures is { Count: > 0 } pts)
-                {
-                    VectorLayerSetting v = BuildVectorLayer(pts, "Point");
-                    v.name = jsonFileName + "_point";
-                    v.shapeFilePath = geoJsonFile;
-                    settingsDataModel.vectorLayerSettings.Add(v);
-                }
-                if (sets.lineFeatures is { Count: > 0 } lines)
-                {
-                    VectorLayerSetting v = BuildVectorLayer(lines, "Line");
-                    v.name = jsonFileName + "_line";
-                    v.shapeFilePath = geoJsonFile;
-                    settingsDataModel.vectorLayerSettings.Add(v);
-                }
-                if (sets.polygonFeatures is { Count: > 0 } polys)
-                {
-                    VectorLayerSetting v = BuildVectorLayer(polys, "Polygon");
-                    v.name = jsonFileName + "_polygon";
-                    v.shapeFilePath = geoJsonFile;
-                    settingsDataModel.vectorLayerSettings.Add(v);
-                }
-            }
+            // ---- gpx (waypoints -> points, routes & tracks -> lines) ----
+            foreach (string gpxFile in gpxFiles)
+                AddFeatureSetLayers(settingsDataModel, GetFeatureSetFromGpx(gpxFile),
+                    Path.GetFileName(gpxFile), gpxFile);
 
             // ---- rasters ----
             foreach (string rasterFile in rasterTifFiles)
@@ -123,7 +106,7 @@ namespace AugGISDataParser
 
             List<VectorFeature> features = new(ntsFeatures.Count);
             foreach (IFeature f in ntsFeatures)
-                features.Add(ConvertFeature(f, transform));
+                features.Add(ConvertFeature(f, transform, false));
 
             VectorLayerSetting setting = BuildVectorLayer(features, tag);
             setting.name = Path.GetFileNameWithoutExtension(a_shpFilePath);
@@ -136,29 +119,99 @@ namespace AugGISDataParser
         public static GeoJsonFeatureSets GetFeatureSetFromGeoJson(string a_geoJsonPath)
         {
             GdalSetup.EnsureConfigured();
+            FeatureCollection featureCollection = JsonReader.Read<FeatureCollection>(File.ReadAllText(a_geoJsonPath));
+            return BuildFeatureSets(featureCollection);
+        }
 
-            string jsonString = File.ReadAllText(a_geoJsonPath);
-            FeatureCollection featureCollection = new FeatureCollection();                        
+        // ---------------------------------------------------------------------
+        // GPX -> point/line VectorFeature lists (GPX is always WGS84, 4326 -> 3035).
+        // Waypoints become points; routes and tracks become lines.
+        // ---------------------------------------------------------------------
+        public static GeoJsonFeatureSets GetFeatureSetFromGpx(string a_gpxPath)
+        {
+            GdalSetup.EnsureConfigured();
+            return BuildFeatureSets(ReadGpxAsFeatures(a_gpxPath));
+        }
 
-            try
+        private static List<IFeature> ReadGpxAsFeatures(string a_gpxPath)
+        {
+            GeometryFactory factory = new GeometryFactory(new PrecisionModel(), Wgs84Epsg);
+            List<IFeature> features = new();
+
+            GpxFile gpx;
+            using (XmlReader xml = XmlReader.Create(a_gpxPath))
+                gpx = GpxFile.ReadFrom(xml, new GpxReaderSettings());
+
+            foreach (GpxWaypoint waypoint in gpx.Waypoints)
+                features.Add(WaypointToPoint(factory, waypoint));
+
+            foreach (GpxRoute route in gpx.Routes)
             {
-                featureCollection = JsonReader.Read<FeatureCollection>(jsonString);            
-            }
-            catch (System.Exception)
-            {                
-                Console.WriteLine("[warning] Unsupported Json file, missing featurecollection: "+a_geoJsonPath);
+                IFeature? line = WaypointsToLine(factory, route.Waypoints, route.Name);
+                if (line != null) features.Add(line);
             }
 
+            foreach (GpxTrack track in gpx.Tracks)
+            {
+                List<GpxWaypoint> trackPoints = new();
+                foreach (GpxTrackSegment segment in track.Segments)
+                    trackPoints.AddRange(segment.Waypoints);
+
+                IFeature? line = WaypointsToLine(factory, trackPoints, track.Name);
+                if (line != null) features.Add(line);
+            }
+
+            return features;
+        }
+
+        private static IFeature WaypointToPoint(GeometryFactory a_factory, GpxWaypoint a_waypoint)
+        {
+            Point geometry = a_factory.CreatePoint(
+                new Coordinate((double)a_waypoint.Longitude, (double)a_waypoint.Latitude));
+
+            AttributesTable attributes = new();
+            if (a_waypoint.Name != null) attributes.Add("name", a_waypoint.Name);
+            if (a_waypoint.Description != null) attributes.Add("description", a_waypoint.Description);
+            if (a_waypoint.Comment != null) attributes.Add("comment", a_waypoint.Comment);
+            if (a_waypoint.SymbolText != null) attributes.Add("symbol", a_waypoint.SymbolText);
+            if (a_waypoint.ElevationInMeters != null) attributes.Add("ele", a_waypoint.ElevationInMeters);
+
+            return new Feature(geometry, attributes);
+        }
+
+        private static IFeature? WaypointsToLine(GeometryFactory a_factory,
+            IEnumerable<GpxWaypoint> a_waypoints, string? a_name)
+        {
+            Coordinate[] coordinates = a_waypoints
+                .Select(w => new Coordinate((double)w.Longitude, (double)w.Latitude))
+                .ToArray();
+
+            if (coordinates.Length < 2) return null; // a line needs at least two points
+
+            LineString geometry = a_factory.CreateLineString(coordinates);
+            AttributesTable attributes = new();
+            if (a_name != null) attributes.Add("name", a_name);
+
+            return new Feature(geometry, attributes);
+        }
+
+        // ---------------------------------------------------------------------
+        // Shared by GeoJSON and GPX: split WGS84 NTS features by geometry type,
+        // reproject to EPSG:3035, and stringify attributes (matches the original
+        // tool's behaviour for these JSON/GPX sources).
+        // ---------------------------------------------------------------------
+        private static GeoJsonFeatureSets BuildFeatureSets(IEnumerable<IFeature> a_features)
+        {
             CoordinateTransformation transform = BuildTransform(Wgs84Epsg);
 
             List<VectorFeature> points = new();
             List<VectorFeature> lines = new();
             List<VectorFeature> polygons = new();
 
-            foreach (IFeature f in featureCollection)
+            foreach (IFeature f in a_features)
             {
                 string tag = GeometryTag(f.Geometry);
-                VectorFeature vf = ConvertFeature(f, transform);
+                VectorFeature vf = ConvertFeature(f, transform, true);
                 switch (tag)
                 {
                     case "Point": points.Add(vf); break;
@@ -169,6 +222,26 @@ namespace AugGISDataParser
             }
 
             return new GeoJsonFeatureSets(points, lines, polygons);
+        }
+
+        private static void AddFeatureSetLayers(SettingsDataModel a_model, GeoJsonFeatureSets a_sets,
+            string a_baseName, string a_sourcePath)
+        {
+            if (a_sets.pointFeatures is { Count: > 0 } pts)
+                a_model.vectorLayerSettings.Add(MakeLayer(pts, "Point", a_baseName + "_point", a_sourcePath));
+            if (a_sets.lineFeatures is { Count: > 0 } lines)
+                a_model.vectorLayerSettings.Add(MakeLayer(lines, "Line", a_baseName + "_line", a_sourcePath));
+            if (a_sets.polygonFeatures is { Count: > 0 } polys)
+                a_model.vectorLayerSettings.Add(MakeLayer(polys, "Polygon", a_baseName + "_polygon", a_sourcePath));
+        }
+
+        private static VectorLayerSetting MakeLayer(List<VectorFeature> a_features, string a_tag,
+            string a_name, string a_sourcePath)
+        {
+            VectorLayerSetting layer = BuildVectorLayer(a_features, a_tag);
+            layer.name = a_name;
+            layer.shapeFilePath = a_sourcePath;
+            return layer;
         }
 
         // ---------------------------------------------------------------------
@@ -245,7 +318,7 @@ namespace AugGISDataParser
             return setting;
         }
 
-        private static VectorFeature ConvertFeature(IFeature a_feature, CoordinateTransformation? a_transform)
+        private static VectorFeature ConvertFeature(IFeature a_feature, CoordinateTransformation? a_transform, bool a_stringifyAttributes)
         {
             Coordinate[] src = a_feature.Geometry.Coordinates;
             double[][] coords = new double[src.Length][];
@@ -258,8 +331,16 @@ namespace AugGISDataParser
             Dictionary<string, object?> attrs = new();
             IAttributesTable? table = a_feature.Attributes;
             if (table != null)
+            {
                 foreach (string name in table.GetNames())
-                    attrs[name] = table[name];
+                {
+                    object? raw = table[name];
+                    // The original tool stored GeoJSON attributes in string-typed columns, so a JSON
+                    // bool/number became "True"/"123". We mirror that for GeoJSON to keep settings.json
+                    // identical. Shapefiles keep their native .dbf types, exactly as before.
+                    attrs[name] = a_stringifyAttributes ? raw?.ToString() : raw;
+                }
+            }
 
             return new VectorFeature { coordinates = coords, attributes = attrs };
         }
@@ -326,7 +407,7 @@ namespace AugGISDataParser
         {
             JsonSerializer serializer = new JsonSerializer();
             serializer.Converters.Add(new JavaScriptDateTimeConverter());
-            serializer.Formatting = Formatting.Indented;
+            serializer.Formatting = Newtonsoft.Json.Formatting.Indented;
 
             using StreamWriter sw = new StreamWriter(a_fileName);
             using JsonWriter writer = new JsonTextWriter(sw);
@@ -337,7 +418,7 @@ namespace AugGISDataParser
         {
             JsonSerializer serializer = new JsonSerializer();
             serializer.Converters.Add(new JavaScriptDateTimeConverter());
-            serializer.Formatting = Formatting.Indented;
+            serializer.Formatting = Newtonsoft.Json.Formatting.Indented;
 
             SettingsDataModel? settingsDataModel;
             using (StreamReader sr = new StreamReader(a_settingsFilePath))
