@@ -55,8 +55,16 @@ namespace AugGISDataParser
 
             // ---- geojson ----
             foreach (string geoJsonFile in geoJsonFiles)
-                AddFeatureSetLayers(settingsDataModel, GetFeatureSetFromGeoJson(geoJsonFile),
-                    Path.GetFileName(geoJsonFile), geoJsonFile);
+            {
+                GeoJsonFeatureSets? sets = GetFeatureSetFromGeoJson(geoJsonFile);
+                if (sets == null)
+                {
+                    Console.WriteLine("[Info] Skipping '{0}' — not a GeoJSON FeatureCollection.", geoJsonFile);
+                    continue;
+                }
+
+                AddFeatureSetLayers(settingsDataModel, sets.Value, Path.GetFileName(geoJsonFile), geoJsonFile);
+            }
 
             // ---- gpx (waypoints -> points, routes & tracks -> lines) ----
             foreach (string gpxFile in gpxFiles)
@@ -116,10 +124,23 @@ namespace AugGISDataParser
         // ---------------------------------------------------------------------
         // GeoJSON -> point/line/polygon VectorFeature lists (4326 -> 3035)
         // ---------------------------------------------------------------------
-        public static GeoJsonFeatureSets GetFeatureSetFromGeoJson(string a_geoJsonPath)
+        public static GeoJsonFeatureSets? GetFeatureSetFromGeoJson(string a_geoJsonPath)
         {
             GdalSetup.EnsureConfigured();
-            FeatureCollection featureCollection = JsonReader.Read<FeatureCollection>(File.ReadAllText(a_geoJsonPath));
+
+            FeatureCollection? featureCollection;
+            try
+            {
+                featureCollection = JsonReader.Read<FeatureCollection>(File.ReadAllText(a_geoJsonPath));
+            }
+            catch
+            {
+                return null; // not valid JSON / not a FeatureCollection -> not GeoJSON
+            }
+
+            if (featureCollection == null)
+                return null;
+
             return BuildFeatureSets(featureCollection);
         }
 

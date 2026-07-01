@@ -32,16 +32,21 @@ namespace AugGISDataParser
                              vectorLayerSetting.shapeFilePath.EndsWith(".geojson") ||
                              vectorLayerSetting.shapeFilePath.EndsWith(".gpx"))
                     {
-                        GeoJsonFeatureSets sets = vectorLayerSetting.shapeFilePath.EndsWith(".gpx")
+                        GeoJsonFeatureSets? sets = vectorLayerSetting.shapeFilePath.EndsWith(".gpx")
                             ? SettingsDataCreator.GetFeatureSetFromGpx(vectorLayerSetting.shapeFilePath)
                             : SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
 
-                        if (vectorLayerSetting.tags.Contains("Point"))
-                            vectorLayerSetting.features = sets.pointFeatures;
+                        if (sets == null)
+                        {
+                            Console.WriteLine("[Warning] Could not reload features for layer '{0}' from '{1}'.",
+                                vectorLayerSetting.name, vectorLayerSetting.shapeFilePath);
+                        }
+                        else if (vectorLayerSetting.tags.Contains("Point"))
+                            vectorLayerSetting.features = sets.Value.pointFeatures;
                         else if (vectorLayerSetting.tags.Contains("Line"))
-                            vectorLayerSetting.features = sets.lineFeatures;
+                            vectorLayerSetting.features = sets.Value.lineFeatures;
                         else if (vectorLayerSetting.tags.Contains("Polygon"))
-                            vectorLayerSetting.features = sets.polygonFeatures;
+                            vectorLayerSetting.features = sets.Value.polygonFeatures;
                         else
                             throw new Exception("Layer does NOT contain any supported tag");
                     }
