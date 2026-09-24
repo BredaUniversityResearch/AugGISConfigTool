@@ -29,17 +29,24 @@ namespace AugGISDataParser
                             SettingsDataCreator.ParseShapeFile(vectorLayerSetting.shapeFilePath).features;
                     }
                     else if (vectorLayerSetting.shapeFilePath.EndsWith(".json") ||
-                             vectorLayerSetting.shapeFilePath.EndsWith(".geojson"))
+                             vectorLayerSetting.shapeFilePath.EndsWith(".geojson") ||
+                             vectorLayerSetting.shapeFilePath.EndsWith(".gpx"))
                     {
-                        GeoJsonFeatureSets sets =
-                            SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
+                        GeoJsonFeatureSets? sets = vectorLayerSetting.shapeFilePath.EndsWith(".gpx")
+                            ? SettingsDataCreator.GetFeatureSetFromGpx(vectorLayerSetting.shapeFilePath)
+                            : SettingsDataCreator.GetFeatureSetFromGeoJson(vectorLayerSetting.shapeFilePath);
 
-                        if (vectorLayerSetting.tags.Contains("Point"))
-                            vectorLayerSetting.features = sets.pointFeatures;
+                        if (sets == null)
+                        {
+                            Console.WriteLine("[Warning] Could not reload features for layer '{0}' from '{1}'.",
+                                vectorLayerSetting.name, vectorLayerSetting.shapeFilePath);
+                        }
+                        else if (vectorLayerSetting.tags.Contains("Point"))
+                            vectorLayerSetting.features = sets.Value.pointFeatures;
                         else if (vectorLayerSetting.tags.Contains("Line"))
-                            vectorLayerSetting.features = sets.lineFeatures;
+                            vectorLayerSetting.features = sets.Value.lineFeatures;
                         else if (vectorLayerSetting.tags.Contains("Polygon"))
-                            vectorLayerSetting.features = sets.polygonFeatures;
+                            vectorLayerSetting.features = sets.Value.polygonFeatures;
                         else
                             throw new Exception("Layer does NOT contain any supported tag");
                     }
@@ -49,6 +56,13 @@ namespace AugGISDataParser
                     vectorLayerSetting.attributeKeyToValues.Count > 0)
                 {
                     vectorLayerSetting.selectedTypeKey = vectorLayerSetting.attributeKeyToValues.Keys.ElementAt(0);
+                }
+
+                // Freshly parsed layers have a selected key but no type list yet — generate it so types
+                // show immediately. Saved settings already carry layerTypeData, so the guard skips them.
+                if (vectorLayerSetting.layerTypeData.Count == 0 && vectorLayerSetting.selectedTypeKey != string.Empty)
+                {
+                    vectorLayerSetting.SelectTypeAttribute(vectorLayerSetting.selectedTypeKey);
                 }
             }
         }

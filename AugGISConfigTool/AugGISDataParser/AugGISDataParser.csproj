@@ -11,6 +11,7 @@
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
     <PackageReference Include="NetTopologySuite.IO.Esri.Shapefile" Version="1.0.0" />
+    <PackageReference Include="NetTopologySuite.IO.GPX" Version="1.1.1" />
 
     <!-- Raster (GeoTIFF) + ALL coordinate reprojection: GDAL/PROJ with bundled native runtimes.
          Keep all three MaxRev packages on the SAME version. Use the latest on NuGet. -->
